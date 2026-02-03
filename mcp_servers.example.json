@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "oview": {
+      "command": "/usr/local/bin/oview",
+      "args": ["mcp"],
+      "env": {
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
+    }
+  }
+}

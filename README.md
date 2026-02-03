@@ -671,13 +671,55 @@ oview up
 └─────────────────────────────────────────────────────────┘
 ```
 
+## 🔌 Claude Code Integration
+
+**oview integrates with Claude Code via MCP (Model Context Protocol)!**
+
+This allows Claude to:
+- 🔍 **Search your codebase semantically** - "Where is authentication handled?"
+- 📖 **Get context automatically** - Understand your code before suggesting changes
+- 🎯 **Work more efficiently** - Access your indexed knowledge base in real-time
+
+### Quick Setup
+
+1. **Index your project:**
+   ```bash
+   cd /path/to/your/project
+   oview init
+   oview up
+   oview index
+   ```
+
+2. **Configure Claude Code:**
+   ```bash
+   mkdir -p ~/.claude
+   cat > ~/.claude/mcp_servers.json << 'JSON'
+   {
+     "mcpServers": {
+       "oview": {
+         "command": "oview",
+         "args": ["mcp"]
+       }
+     }
+   }
+   JSON
+   ```
+
+3. **Use it:**
+   ```
+   > Claude, search for error handling code in this project
+   ```
+
+📚 **Full guide:** See [docs/MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md)
+🚀 **Quick start:** See [docs/QUICK_START_MCP.md](docs/QUICK_START_MCP.md)
+
 ## Roadmap
 
-- [ ] Real embeddings integration (OpenAI, local models)
+- [x] Real embeddings integration (OpenAI, Ollama)
+- [x] MCP integration with Claude Code
 - [ ] Incremental indexing (only changed files)
 - [ ] Trello integration for task management
 - [ ] Agent orchestration engine
-- [ ] Query interface for RAG
 - [ ] Web UI for management
 - [ ] Multi-project dashboards
 - [ ] Docker Compose export for projects
