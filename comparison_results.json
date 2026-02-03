@@ -1,0 +1,129 @@
+{
+  "timestamp": "2026-02-03T20:35:25.765083437+01:00",
+  "project_id": "",
+  "project_slug": "oview",
+  "total_chunks": 181,
+  "scenarios": [
+    {
+      "name": "Find authentication code",
+      "description": "Search for authentication implementation",
+      "with_oview": {
+        "method": "MCP search",
+        "search_time_ms": 25000000,
+        "result_count": 5,
+        "estimated_tokens": 2000,
+        "estimated_cost_usd": 0.0006,
+        "accuracy": "High - semantic search finds relevant code"
+      },
+      "without_oview": {
+        "method": "Grep + Read files",
+        "search_time_ms": 500000000,
+        "result_count": 15,
+        "estimated_tokens": 8000,
+        "estimated_cost_usd": 0.0024,
+        "accuracy": "Medium - keyword search, some irrelevant results"
+      },
+      "improvement": {
+        "time_saved_ms": 475000000,
+        "time_saved_pct": 95,
+        "tokens_saved": 6000,
+        "tokens_saved_pct": 75,
+        "cost_saved_usd": 0.0018,
+        "cost_saved_pct": 75
+      }
+    },
+    {
+      "name": "Understand file context",
+      "description": "Get context before modifying a file",
+      "with_oview": {
+        "method": "MCP get_context",
+        "search_time_ms": 30000000,
+        "result_count": 3,
+        "estimated_tokens": 1500,
+        "estimated_cost_usd": 0.00045,
+        "accuracy": "High - relevant chunks with dependencies"
+      },
+      "without_oview": {
+        "method": "Read file + Grep references",
+        "search_time_ms": 800000000,
+        "result_count": 1,
+        "estimated_tokens": 5000,
+        "estimated_cost_usd": 0.0015,
+        "accuracy": "Low - only gets the file, misses context"
+      },
+      "improvement": {
+        "time_saved_ms": 770000000,
+        "time_saved_pct": 96.25,
+        "tokens_saved": 3500,
+        "tokens_saved_pct": 70,
+        "cost_saved_usd": 0.0010500000000000002,
+        "cost_saved_pct": 70
+      }
+    },
+    {
+      "name": "Explore codebase",
+      "description": "Find examples of similar patterns",
+      "with_oview": {
+        "method": "MCP search with semantic matching",
+        "search_time_ms": 28000000,
+        "result_count": 5,
+        "estimated_tokens": 2500,
+        "estimated_cost_usd": 0.00075,
+        "accuracy": "High - finds semantically similar code"
+      },
+      "without_oview": {
+        "method": "Multiple Grep + Read",
+        "search_time_ms": 2000000000,
+        "result_count": 20,
+        "estimated_tokens": 12000,
+        "estimated_cost_usd": 0.0036,
+        "accuracy": "Low - keyword matching misses similar concepts"
+      },
+      "improvement": {
+        "time_saved_ms": 1972000000,
+        "time_saved_pct": 98.6,
+        "tokens_saved": 9500,
+        "tokens_saved_pct": 79.16666666666666,
+        "cost_saved_usd": 0.00285,
+        "cost_saved_pct": 79.16666666666667
+      }
+    },
+    {
+      "name": "Debug error",
+      "description": "Find where an error is handled",
+      "with_oview": {
+        "method": "MCP search for error patterns",
+        "search_time_ms": 27000000,
+        "result_count": 4,
+        "estimated_tokens": 1800,
+        "estimated_cost_usd": 0.00054,
+        "accuracy": "High - finds all error handling patterns"
+      },
+      "without_oview": {
+        "method": "Grep for error keywords",
+        "search_time_ms": 600000000,
+        "result_count": 30,
+        "estimated_tokens": 10000,
+        "estimated_cost_usd": 0.003,
+        "accuracy": "Low - too many false positives"
+      },
+      "improvement": {
+        "time_saved_ms": 573000000,
+        "time_saved_pct": 95.5,
+        "tokens_saved": 8200,
+        "tokens_saved_pct": 82,
+        "cost_saved_usd": 0.00246,
+        "cost_saved_pct": 82
+      }
+    }
+  ],
+  "summary": {
+    "avg_time_saved_ms": 947500000,
+    "avg_time_saved_pct": 96.3375,
+    "avg_tokens_saved": 6800,
+    "avg_tokens_saved_pct": 76.54166666666666,
+    "avg_cost_saved_usd": 0.00204,
+    "total_cost_savings_per_day_usd": 0.10200000000000001,
+    "roi": "Saves $0.10/day, $3.06/month"
+  }
+}

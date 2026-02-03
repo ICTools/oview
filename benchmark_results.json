@@ -1,51 +1,51 @@
 {
-  "timestamp": "2026-02-03T20:27:36.876823467+01:00",
+  "timestamp": "2026-02-03T20:31:43.526962331+01:00",
   "project_id": "224c26562aa9f37c",
   "project_slug": "oview",
-  "total_chunks": 181,
+  "total_chunks": 211,
   "embedding_provider": "ollama",
   "embedding_model": "nomic-embed-text",
   "embedding_dimension": 768,
   "tests": [
     {
       "name": "Database Connection",
-      "duration_ms": 506631,
+      "duration_ms": 190762,
       "success": true
     },
     {
       "name": "Embedding Generation #1",
       "query": "authentication implementation",
-      "duration_ms": 31746127,
+      "duration_ms": 28523745,
       "success": true
     },
     {
       "name": "Embedding Generation #2",
       "query": "database connection",
-      "duration_ms": 22308232,
+      "duration_ms": 18180280,
       "success": true
     },
     {
       "name": "Embedding Generation #3",
       "query": "error handling",
-      "duration_ms": 26854707,
+      "duration_ms": 19111748,
       "success": true
     },
     {
       "name": "Embedding Generation #4",
       "query": "configuration files",
-      "duration_ms": 19445028,
+      "duration_ms": 21472843,
       "success": true
     },
     {
       "name": "Embedding Generation #5",
       "query": "user management",
-      "duration_ms": 23525936,
+      "duration_ms": 20046410,
       "success": true
     },
     {
       "name": "Search #1 (E2E)",
       "query": "authentication implementation",
-      "duration_ms": 27701270,
+      "duration_ms": 25354760,
       "success": true,
       "result_count": 5,
       "top_similarity": 0.640686762246911,
@@ -54,16 +54,16 @@
     {
       "name": "Search #2 (E2E)",
       "query": "database connection",
-      "duration_ms": 24924463,
+      "duration_ms": 24795756,
       "success": true,
       "result_count": 5,
       "top_similarity": 0.6772394473306074,
-      "average_similarity": 0.6125256751621005
+      "average_similarity": 0.6151214255075464
     },
     {
       "name": "Search #3 (E2E)",
       "query": "error handling",
-      "duration_ms": 24353476,
+      "duration_ms": 24555570,
       "success": true,
       "result_count": 5,
       "top_similarity": 0.6465765042745083,
@@ -72,16 +72,16 @@
     {
       "name": "Search #4 (E2E)",
       "query": "configuration files",
-      "duration_ms": 23887919,
+      "duration_ms": 24619053,
       "success": true,
       "result_count": 5,
       "top_similarity": 0.6235214688423546,
-      "average_similarity": 0.604503848746174
+      "average_similarity": 0.608767913040513
     },
     {
       "name": "Search #5 (E2E)",
       "query": "user management",
-      "duration_ms": 25166658,
+      "duration_ms": 21834258,
       "success": true,
       "result_count": 5,
       "top_similarity": 0.5271007973002049,
@@ -90,7 +90,7 @@
     {
       "name": "Concurrent Searches (x5)",
       "query": "authentication implementation",
-      "duration_ms": 36342651,
+      "duration_ms": 34996103,
       "success": true,
       "error": "0/5 failed"
     }
@@ -99,13 +99,13 @@
     "total_tests": 12,
     "successful_tests": 12,
     "failed_tests": 0,
-    "avg_embedding_time_ms": 24776006,
-    "avg_search_time_ms": 25206757,
-    "avg_end_to_end_time_ms": 25206757,
-    "min_search_time_ms": 23887919,
-    "max_search_time_ms": 27701270,
+    "avg_embedding_time_ms": 21467005,
+    "avg_search_time_ms": 24231879,
+    "avg_end_to_end_time_ms": 24231879,
+    "min_search_time_ms": 21834258,
+    "max_search_time_ms": 25354760,
     "avg_result_relevance": 0.6230249959989173,
-    "throughput_queries_per_sec": 39.67190194540375
+    "throughput_queries_per_sec": 41.26795051645891
   },
   "system_info": {
     "embedding_base_url": "http://localhost:11434",
