@@ -150,8 +150,8 @@ func (c *Client) EnableExtension(dbName, extension string) error {
 	return nil
 }
 
-// CreateSchema creates the RAG schema in a database
-func (c *Client) CreateSchema(dbName string) error {
+// CreateSchema creates the RAG schema in a database with the specified embedding dimension
+func (c *Client) CreateSchema(dbName string, embeddingDim int) error {
 	// Connect to the specific database
 	dbDSN := replaceDatabaseInDSN(c.dsn, dbName)
 	db, err := sql.Open("postgres", dbDSN)
@@ -160,8 +160,9 @@ func (c *Client) CreateSchema(dbName string) error {
 	}
 	defer db.Close()
 
-	// Execute schema SQL
-	_, err = db.Exec(SchemaSQL)
+	// Execute schema SQL with the specified embedding dimension
+	schemaSQL := GetSchemaSQL(embeddingDim)
+	_, err = db.Exec(schemaSQL)
 	if err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}

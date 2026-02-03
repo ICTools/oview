@@ -4,11 +4,17 @@ import (
 	"bufio"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/yourusername/oview/internal/agents"
@@ -49,8 +55,19 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Check if .oview already exists
 	oviewDir := filepath.Join(projectPath, ".oview")
-	if _, err := os.Stat(oviewDir); err == nil && !forceInit {
-		return fmt.Errorf(".oview directory already exists. Use --force to overwrite")
+	var oldConfig *config.ProjectConfig
+	configExists := false
+
+	if _, err := os.Stat(oviewDir); err == nil {
+		if !forceInit {
+			return fmt.Errorf(".oview directory already exists. Use --force to overwrite")
+		}
+
+		// Load old config to compare embeddings
+		oldConfig, err = config.LoadProjectConfig(projectPath)
+		if err == nil {
+			configExists = true
+		}
 	}
 
 	// Create .oview directory structure
@@ -130,8 +147,8 @@ func runInit(cmd *cobra.Command, args []string) error {
 	} else {
 		// Non-interactive defaults
 		embeddingsConfig = config.EmbeddingsConfig{
-			Provider: "stub",
-			Model:    "stub-hash-based",
+			Provider: "openai",
+			Model:    "text-embedding-3-small",
 			Dim:      1536,
 		}
 		llmConfig = config.LLMConfig{
@@ -160,6 +177,39 @@ func runInit(cmd *cobra.Command, args []string) error {
 		},
 		Embeddings: embeddingsConfig,
 		LLM:        llmConfig,
+	}
+
+	// Check if embeddings model changed
+	if configExists && oldConfig != nil {
+		embeddingsChanged := oldConfig.Embeddings.Model != embeddingsConfig.Model ||
+			oldConfig.Embeddings.Dim != embeddingsConfig.Dim ||
+			oldConfig.Embeddings.Provider != embeddingsConfig.Provider
+
+		if embeddingsChanged {
+			fmt.Println()
+			fmt.Println("⚠️  ATTENTION: Le modèle d'embeddings a changé!")
+			fmt.Println()
+			fmt.Printf("   Ancien: %s / %s (%d dimensions)\n",
+				oldConfig.Embeddings.Provider,
+				oldConfig.Embeddings.Model,
+				oldConfig.Embeddings.Dim)
+			fmt.Printf("   Nouveau: %s / %s (%d dimensions)\n",
+				embeddingsConfig.Provider,
+				embeddingsConfig.Model,
+				embeddingsConfig.Dim)
+			fmt.Println()
+			fmt.Println("⚠️  Vous devez recréer la base de données:")
+			fmt.Println()
+			fmt.Println("   1. Supprimer l'ancienne base:")
+			fmt.Printf("      docker exec oview-postgres psql -U oview -c \"DROP DATABASE oview_%s;\"\n", slug)
+			fmt.Println()
+			fmt.Println("   2. Recréer avec la nouvelle dimension:")
+			fmt.Println("      oview up")
+			fmt.Println()
+			fmt.Println("   3. Réindexer:")
+			fmt.Println("      oview index")
+			fmt.Println()
+		}
 	}
 
 	if err := projectConfig.Save(projectPath); err != nil {
@@ -222,6 +272,15 @@ func generateProjectID() string {
 	return hex.EncodeToString(bytes)
 }
 
+// EmbeddingModelOption represents an embedding model choice
+type EmbeddingModelOption struct {
+	Name        string
+	Provider    string
+	Dim         int
+	Description string
+	BaseURL     string
+}
+
 // promptEmbeddingsConfig prompts user for embeddings configuration
 func promptEmbeddingsConfig() config.EmbeddingsConfig {
 	reader := bufio.NewReader(os.Stdin)
@@ -230,91 +289,74 @@ func promptEmbeddingsConfig() config.EmbeddingsConfig {
 	fmt.Println()
 	fmt.Println("Les embeddings permettent la recherche sémantique dans votre code.")
 	fmt.Println()
-	fmt.Println("Providers disponibles:")
-	fmt.Println("  1. stub         - Placeholder (hash, pas de sémantique) - Gratuit")
-	fmt.Println("  2. openai       - OpenAI API (haute qualité) - ~$0.02/1M tokens")
-	fmt.Println("  3. ollama       - Local (privé, gratuit) - Nécessite installation")
+
+	// All embedding models in one flat list - Ollama first, official recommended models
+	models := []EmbeddingModelOption{
+		// Ollama models first - official recommended embeddings models from ollama.com
+		{"nomic-embed-text", "ollama", 768, "Ollama - 768 dim, 8K context, local, gratuit (recommandé)", "http://localhost:11434"},
+		{"mxbai-embed-large", "ollama", 1024, "Ollama - 1024 dim, haute qualité, local", "http://localhost:11434"},
+		{"snowflake-arctic-embed", "ollama", 1024, "Ollama - 1024 dim, Snowflake, local", "http://localhost:11434"},
+		{"embeddinggemma", "ollama", 768, "Ollama - 768 dim, Google Gemma, local", "http://localhost:11434"},
+		// OpenAI models
+		{"text-embedding-3-small", "openai", 1536, "OpenAI - $0.02/1M tokens, 1536 dim", ""},
+		{"text-embedding-3-large", "openai", 3072, "OpenAI - $0.13/1M tokens, 3072 dim, haute qualité", ""},
+		{"text-embedding-ada-002", "openai", 1536, "OpenAI - $0.10/1M tokens, 1536 dim (ancien)", ""},
+	}
+
+	fmt.Println("Modèles disponibles:")
+	for i, m := range models {
+		fmt.Printf("  %d. %-28s - %s\n", i+1, m.Name, m.Description)
+	}
 	fmt.Println()
 
-	// Choose provider
-	provider := promptChoice(reader, "Choisir provider [1-3]", []string{"stub", "openai", "ollama"}, "1")
-
-	var model string
-	var dim int
-	var baseURL string
-
-	switch provider {
-	case "stub":
-		model = "stub-hash-based"
-		dim = 1536
-		fmt.Println()
-		fmt.Println("ℹ️  Stub: Pas de sémantique, uniquement pour tester l'infrastructure")
-
-	case "openai":
-		fmt.Println()
-		fmt.Println("Modèles OpenAI disponibles:")
-		fmt.Println("  1. text-embedding-3-small  - $0.02/1M tokens, 1536 dim (recommandé)")
-		fmt.Println("  2. text-embedding-3-large  - $0.13/1M tokens, 3072 dim (meilleure qualité)")
-		fmt.Println("  3. text-embedding-ada-002  - $0.10/1M tokens, 1536 dim (ancien)")
-		fmt.Println()
-
-		models := []string{
-			"text-embedding-3-small",
-			"text-embedding-3-large",
-			"text-embedding-ada-002",
-		}
-		dims := []int{1536, 3072, 1536}
-
-		choice := promptChoice(reader, "Choisir modèle [1-3]", models, "1")
-		model = choice
-		for i, m := range models {
-			if m == choice {
-				dim = dims[i]
-				break
-			}
-		}
-
-		fmt.Println()
-		fmt.Println("💡 N'oubliez pas de configurer OPENAI_API_KEY dans votre environnement")
-
-	case "ollama":
-		fmt.Println()
-		fmt.Println("Modèles Ollama populaires:")
-		fmt.Println("  1. nomic-embed-text   - 768 dim, 274 MB (recommandé)")
-		fmt.Println("  2. mxbai-embed-large  - 1024 dim, 669 MB")
-		fmt.Println("  3. bge-code           - 768 dim, optimisé code")
-		fmt.Println("  4. all-minilm         - 384 dim, 45 MB (rapide)")
-		fmt.Println()
-
-		models := []string{
-			"nomic-embed-text",
-			"mxbai-embed-large",
-			"bge-code",
-			"all-minilm",
-		}
-		dims := []int{768, 1024, 768, 384}
-
-		choice := promptChoice(reader, "Choisir modèle [1-4]", models, "1")
-		model = choice
-		for i, m := range models {
-			if m == choice {
-				dim = dims[i]
-				break
-			}
-		}
-
-		baseURL = promptString(reader, "Base URL Ollama", "http://localhost:11434")
-
-		fmt.Println()
-		fmt.Println("💡 Avant d'indexer, lancez: ollama serve && ollama pull " + model)
+	// Get user choice
+	modelNames := make([]string, len(models))
+	for i, m := range models {
+		modelNames[i] = m.Name
 	}
 
-	return config.EmbeddingsConfig{
-		Provider: provider,
-		Model:    model,
-		Dim:      dim,
-		BaseURL:  baseURL,
+	choice := promptChoice(reader, "Choisir modèle [1-7]", modelNames, "1")
+
+	// Find selected model
+	var selected EmbeddingModelOption
+	for _, m := range models {
+		if m.Name == choice {
+			selected = m
+			break
+		}
 	}
+
+	// Customize base URL for Ollama if needed
+	if selected.Provider == "ollama" {
+		fmt.Println()
+		selected.BaseURL = promptString(reader, "Base URL Ollama", selected.BaseURL)
+	}
+
+	// Validate connection
+	fmt.Println()
+	fmt.Println("🔌 Validation de la connexion...")
+
+	embeddingsConfig := config.EmbeddingsConfig{
+		Provider: selected.Provider,
+		Model:    selected.Name,
+		Dim:      selected.Dim,
+		BaseURL:  selected.BaseURL,
+	}
+
+	if err := validateEmbeddingsConnection(reader, &embeddingsConfig); err != nil {
+		fmt.Printf("⚠️  Validation échouée: %v\n", err)
+		fmt.Println("   Vous pourrez reconfigurer plus tard en éditant .oview/project.yaml")
+	}
+
+	return embeddingsConfig
+}
+
+// LLMModelOption represents an LLM model choice
+type LLMModelOption struct {
+	Name        string
+	Provider    string
+	Description string
+	BaseURL     string
 }
 
 // promptLLMConfig prompts user for LLM configuration
@@ -326,89 +368,84 @@ func promptLLMConfig() config.LLMConfig {
 	fmt.Println()
 	fmt.Println("Le LLM sera utilisé par les agents pour analyser et modifier le code.")
 	fmt.Println()
-	fmt.Println("Providers disponibles:")
-	fmt.Println("  1. claude-code   - Claude Code CLI (Sonnet 4.5) - Intégré")
-	fmt.Println("  2. claude-api    - Claude API (Anthropic) - Nécessite clé API")
-	fmt.Println("  3. openai        - OpenAI API (GPT-4, etc.) - Nécessite clé API")
-	fmt.Println("  4. ollama        - Local (Llama 3, etc.) - Gratuit")
+
+	// All LLM models in one flat list, Claude models first
+	models := []LLMModelOption{
+		// Claude models first
+		{"claude-sonnet-4.5", "claude-code", "Claude Code CLI - Intégré (recommandé)", ""},
+		{"claude-sonnet-4.5", "claude-api", "Claude API - Équilibré, nécessite clé API", ""},
+		{"claude-opus-4.5", "claude-api", "Claude API - Maximum qualité, nécessite clé API", ""},
+		{"claude-haiku-4", "claude-api", "Claude API - Rapide et économique, nécessite clé API", ""},
+		// OpenAI models
+		{"gpt-4o", "openai", "OpenAI - Multimodal, nécessite clé API", ""},
+		{"gpt-4-turbo", "openai", "OpenAI - Rapide, 128K tokens, nécessite clé API", ""},
+		{"gpt-4", "openai", "OpenAI - Stable, nécessite clé API", ""},
+		// Ollama models
+		{"llama3.1:70b", "ollama", "Ollama - Haute qualité, local", "http://localhost:11434"},
+		{"llama3.1:8b", "ollama", "Ollama - Rapide, local", "http://localhost:11434"},
+		{"codellama:34b", "ollama", "Ollama - Optimisé code, local", "http://localhost:11434"},
+		{"deepseek-coder", "ollama", "Ollama - Spécialisé code, local", "http://localhost:11434"},
+	}
+
+	fmt.Println("Modèles disponibles:")
+	for i, m := range models {
+		displayName := m.Name
+		if m.Name == "claude-sonnet-4.5" && m.Provider == "claude-api" {
+			displayName = "claude-sonnet-4.5 (API)"
+		} else if m.Name == "claude-sonnet-4.5" && m.Provider == "claude-code" {
+			displayName = "claude-sonnet-4.5 (CLI)"
+		}
+		fmt.Printf("  %d. %-28s - %s\n", i+1, displayName, m.Description)
+	}
 	fmt.Println()
 
-	// Choose provider
-	provider := promptChoice(reader, "Choisir provider [1-4]", []string{"claude-code", "claude-api", "openai", "ollama"}, "1")
-
-	var model string
-	var baseURL string
-
-	switch provider {
-	case "claude-code":
-		model = "claude-sonnet-4.5"
-		fmt.Println()
-		fmt.Println("✅ Claude Code: Utilise le CLI actuel (recommandé)")
-
-	case "claude-api":
-		fmt.Println()
-		fmt.Println("Modèles Claude API:")
-		fmt.Println("  1. claude-sonnet-4.5    - Dernier, équilibré (recommandé)")
-		fmt.Println("  2. claude-opus-4.5      - Maximum qualité")
-		fmt.Println("  3. claude-haiku-4       - Rapide et économique")
-		fmt.Println()
-
-		models := []string{
-			"claude-sonnet-4.5",
-			"claude-opus-4.5",
-			"claude-haiku-4",
-		}
-		model = promptChoice(reader, "Choisir modèle [1-3]", models, "1")
-
-		fmt.Println()
-		fmt.Println("💡 Configurez ANTHROPIC_API_KEY dans votre environnement")
-
-	case "openai":
-		fmt.Println()
-		fmt.Println("Modèles OpenAI:")
-		fmt.Println("  1. gpt-4o           - Dernier, multimodal")
-		fmt.Println("  2. gpt-4-turbo      - Rapide, fenêtre 128K")
-		fmt.Println("  3. gpt-4            - Stable")
-		fmt.Println()
-
-		models := []string{
-			"gpt-4o",
-			"gpt-4-turbo",
-			"gpt-4",
-		}
-		model = promptChoice(reader, "Choisir modèle [1-3]", models, "1")
-
-		fmt.Println()
-		fmt.Println("💡 Configurez OPENAI_API_KEY dans votre environnement")
-
-	case "ollama":
-		fmt.Println()
-		fmt.Println("Modèles Ollama populaires:")
-		fmt.Println("  1. llama3.1:70b      - Haute qualité")
-		fmt.Println("  2. llama3.1:8b       - Rapide")
-		fmt.Println("  3. codellama:34b     - Optimisé code")
-		fmt.Println("  4. deepseek-coder    - Spécialisé code")
-		fmt.Println()
-
-		models := []string{
-			"llama3.1:70b",
-			"llama3.1:8b",
-			"codellama:34b",
-			"deepseek-coder",
-		}
-		model = promptChoice(reader, "Choisir modèle [1-4]", models, "2")
-
-		baseURL = promptString(reader, "Base URL Ollama", "http://localhost:11434")
-
-		fmt.Println()
-		fmt.Println("💡 Avant d'utiliser, lancez: ollama serve && ollama pull " + model)
+	// Get user choice
+	modelNames := make([]string, len(models))
+	for i, m := range models {
+		modelNames[i] = m.Name
 	}
 
-	return config.LLMConfig{
-		Provider: provider,
-		Model:    model,
-		BaseURL:  baseURL,
+	choiceInput := promptChoice(reader, "Choisir modèle [1-11]", modelNames, "1")
+
+	// Find selected model - need to handle index-based selection
+	var selected LLMModelOption
+	if choiceNum, err := strconv.Atoi(choiceInput); err == nil && choiceNum >= 1 && choiceNum <= len(models) {
+		selected = models[choiceNum-1]
+	} else {
+		// Try to match by name
+		for _, m := range models {
+			if m.Name == choiceInput {
+				selected = m
+				break
+			}
+		}
+		if selected.Name == "" {
+			selected = models[0] // Default to first option
+		}
 	}
+
+	// Customize base URL for Ollama if needed
+	if selected.Provider == "ollama" {
+		fmt.Println()
+		selected.BaseURL = promptString(reader, "Base URL Ollama", selected.BaseURL)
+	}
+
+	// Validate connection
+	fmt.Println()
+	fmt.Println("🔌 Validation de la connexion...")
+
+	llmConfig := config.LLMConfig{
+		Provider: selected.Provider,
+		Model:    selected.Name,
+		BaseURL:  selected.BaseURL,
+	}
+
+	if err := validateLLMConnection(reader, &llmConfig); err != nil {
+		fmt.Printf("⚠️  Validation échouée: %v\n", err)
+		fmt.Println("   Vous pourrez reconfigurer plus tard en éditant .oview/project.yaml")
+	}
+
+	return llmConfig
 }
 
 // promptChoice prompts user to choose from a list
@@ -455,4 +492,579 @@ func promptString(reader *bufio.Reader, prompt string, defaultValue string) stri
 	}
 
 	return input
+}
+
+// validateEmbeddingsConnection validates the embeddings configuration
+func validateEmbeddingsConnection(reader *bufio.Reader, cfg *config.EmbeddingsConfig) error {
+	switch cfg.Provider {
+	case "openai":
+		return validateOpenAIEmbeddings(reader, cfg)
+	case "ollama":
+		return validateOllamaEmbeddings(reader, cfg)
+	default:
+		return fmt.Errorf("provider non supporté: %s", cfg.Provider)
+	}
+}
+
+// validateLLMConnection validates the LLM configuration
+func validateLLMConnection(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	switch cfg.Provider {
+	case "claude-code":
+		fmt.Println("✅ Claude Code: Utilise le CLI actuel (déjà authentifié)")
+		return nil
+	case "claude-api":
+		return validateClaudeAPI(reader, cfg)
+	case "openai":
+		return validateOpenAILLM(reader, cfg)
+	case "ollama":
+		return validateOllamaLLM(reader, cfg)
+	default:
+		return fmt.Errorf("provider non supporté: %s", cfg.Provider)
+	}
+}
+
+// validateOpenAIEmbeddings validates OpenAI embeddings connection
+func validateOpenAIEmbeddings(reader *bufio.Reader, cfg *config.EmbeddingsConfig) error {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" && cfg.APIKey == "" {
+		fmt.Println("❌ OPENAI_API_KEY non configurée")
+		return promptForOpenAIKey(reader, cfg)
+	}
+
+	if apiKey == "" {
+		apiKey = cfg.APIKey
+	}
+
+	// Test connection with a minimal embedding request
+	if err := testOpenAIConnection(apiKey, cfg.Model); err != nil {
+		fmt.Printf("❌ Échec de connexion: %v\n", err)
+		return promptForOpenAIKey(reader, cfg)
+	}
+
+	fmt.Println("✅ Connexion OpenAI réussie")
+	return nil
+}
+
+// validateClaudeAPI validates Claude API connection
+func validateClaudeAPI(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
+	if apiKey == "" && cfg.APIKey == "" {
+		fmt.Println("❌ ANTHROPIC_API_KEY non configurée")
+		return promptForClaudeKey(reader, cfg)
+	}
+
+	if apiKey == "" {
+		apiKey = cfg.APIKey
+	}
+
+	// Test connection
+	if err := testClaudeConnection(apiKey); err != nil {
+		fmt.Printf("❌ Échec de connexion: %v\n", err)
+		return promptForClaudeKey(reader, cfg)
+	}
+
+	fmt.Println("✅ Connexion Claude API réussie")
+	return nil
+}
+
+// validateOpenAILLM validates OpenAI LLM connection
+func validateOpenAILLM(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" && cfg.APIKey == "" {
+		fmt.Println("❌ OPENAI_API_KEY non configurée")
+		return promptForOpenAIKeyLLM(reader, cfg)
+	}
+
+	if apiKey == "" {
+		apiKey = cfg.APIKey
+	}
+
+	// Test connection
+	if err := testOpenAILLMConnection(apiKey, cfg.Model); err != nil {
+		fmt.Printf("❌ Échec de connexion: %v\n", err)
+		return promptForOpenAIKeyLLM(reader, cfg)
+	}
+
+	fmt.Println("✅ Connexion OpenAI réussie")
+	return nil
+}
+
+// validateOllamaEmbeddings validates Ollama embeddings connection
+func validateOllamaEmbeddings(reader *bufio.Reader, cfg *config.EmbeddingsConfig) error {
+	// Check if ollama command exists
+	if !isOllamaInstalled() {
+		fmt.Println("❌ Ollama n'est pas installé")
+		if err := promptInstallOllama(reader); err != nil {
+			return err
+		}
+		// Re-check after installation
+		if !isOllamaInstalled() {
+			return fmt.Errorf("ollama non installé")
+		}
+	}
+
+	// Test if Ollama is running
+	if err := testOllamaConnection(cfg.BaseURL); err != nil {
+		fmt.Printf("❌ Ollama n'est pas lancé sur %s\n", cfg.BaseURL)
+		fmt.Println()
+
+		// Try to start ollama serve
+		if err := promptStartOllama(reader); err != nil {
+			return err
+		}
+
+		// Wait and re-test
+		time.Sleep(2 * time.Second)
+		if err := testOllamaConnection(cfg.BaseURL); err != nil {
+			return fmt.Errorf("échec de connexion après lancement: %w", err)
+		}
+	}
+
+	// Test if model is available
+	if err := testOllamaModel(cfg.BaseURL, cfg.Model); err != nil {
+		fmt.Printf("❌ Modèle %s non disponible\n", cfg.Model)
+
+		// Propose to pull the model
+		if err := promptPullOllamaModel(reader, cfg.Model); err != nil {
+			return err
+		}
+
+		// Re-check after pull
+		if err := testOllamaModel(cfg.BaseURL, cfg.Model); err != nil {
+			return fmt.Errorf("modèle toujours non disponible: %w", err)
+		}
+	}
+
+	fmt.Println("✅ Ollama connecté, modèle disponible")
+	return nil
+}
+
+// validateOllamaLLM validates Ollama LLM connection
+func validateOllamaLLM(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	// Check if ollama command exists
+	if !isOllamaInstalled() {
+		fmt.Println("❌ Ollama n'est pas installé")
+		if err := promptInstallOllama(reader); err != nil {
+			return err
+		}
+		// Re-check after installation
+		if !isOllamaInstalled() {
+			return fmt.Errorf("ollama non installé")
+		}
+	}
+
+	// Test if Ollama is running
+	if err := testOllamaConnection(cfg.BaseURL); err != nil {
+		fmt.Printf("❌ Ollama n'est pas lancé sur %s\n", cfg.BaseURL)
+		fmt.Println()
+
+		// Try to start ollama serve
+		if err := promptStartOllama(reader); err != nil {
+			return err
+		}
+
+		// Wait and re-test
+		time.Sleep(2 * time.Second)
+		if err := testOllamaConnection(cfg.BaseURL); err != nil {
+			return fmt.Errorf("échec de connexion après lancement: %w", err)
+		}
+	}
+
+	// Test if model is available
+	if err := testOllamaModel(cfg.BaseURL, cfg.Model); err != nil {
+		fmt.Printf("❌ Modèle %s non disponible\n", cfg.Model)
+
+		// Propose to pull the model
+		if err := promptPullOllamaModel(reader, cfg.Model); err != nil {
+			return err
+		}
+
+		// Re-check after pull
+		if err := testOllamaModel(cfg.BaseURL, cfg.Model); err != nil {
+			return fmt.Errorf("modèle toujours non disponible: %w", err)
+		}
+	}
+
+	fmt.Println("✅ Ollama connecté, modèle disponible")
+	return nil
+}
+
+// promptForOpenAIKey prompts user to configure OpenAI API key
+func promptForOpenAIKey(reader *bufio.Reader, cfg *config.EmbeddingsConfig) error {
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  1. Entrer la clé API maintenant (sera stockée dans .oview/project.yaml)")
+	fmt.Println("  2. Obtenir une clé API (ouvre le navigateur)")
+	fmt.Println("  3. Configurer plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-3]", []string{"1", "2", "3"}, "3")
+
+	switch choice {
+	case "1":
+		fmt.Print("Entrez votre clé API OpenAI: ")
+		apiKey, _ := reader.ReadString('\n')
+		apiKey = strings.TrimSpace(apiKey)
+		if apiKey != "" {
+			cfg.APIKey = apiKey
+			fmt.Println("⚠️  Clé stockée dans .oview/project.yaml - Ne pas commiter ce fichier!")
+			// Test again
+			if err := testOpenAIConnection(apiKey, cfg.Model); err != nil {
+				return fmt.Errorf("clé invalide: %w", err)
+			}
+			fmt.Println("✅ Clé validée")
+		}
+	case "2":
+		openBrowser("https://platform.openai.com/api-keys")
+		fmt.Println("📖 Page ouverte dans le navigateur")
+		fmt.Println("   Après avoir obtenu votre clé, configurez: export OPENAI_API_KEY='...'")
+	case "3":
+		fmt.Println("💡 Configurez plus tard: export OPENAI_API_KEY='...'")
+	}
+
+	return nil
+}
+
+// promptForOpenAIKeyLLM prompts user to configure OpenAI API key for LLM
+func promptForOpenAIKeyLLM(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  1. Entrer la clé API maintenant (sera stockée dans .oview/project.yaml)")
+	fmt.Println("  2. Obtenir une clé API (ouvre le navigateur)")
+	fmt.Println("  3. Configurer plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-3]", []string{"1", "2", "3"}, "3")
+
+	switch choice {
+	case "1":
+		fmt.Print("Entrez votre clé API OpenAI: ")
+		apiKey, _ := reader.ReadString('\n')
+		apiKey = strings.TrimSpace(apiKey)
+		if apiKey != "" {
+			cfg.APIKey = apiKey
+			fmt.Println("⚠️  Clé stockée dans .oview/project.yaml - Ne pas commiter ce fichier!")
+			// Test again
+			if err := testOpenAILLMConnection(apiKey, cfg.Model); err != nil {
+				return fmt.Errorf("clé invalide: %w", err)
+			}
+			fmt.Println("✅ Clé validée")
+		}
+	case "2":
+		openBrowser("https://platform.openai.com/api-keys")
+		fmt.Println("📖 Page ouverte dans le navigateur")
+		fmt.Println("   Après avoir obtenu votre clé, configurez: export OPENAI_API_KEY='...'")
+	case "3":
+		fmt.Println("💡 Configurez plus tard: export OPENAI_API_KEY='...'")
+	}
+
+	return nil
+}
+
+// promptForClaudeKey prompts user to configure Claude API key
+func promptForClaudeKey(reader *bufio.Reader, cfg *config.LLMConfig) error {
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  1. Entrer la clé API maintenant (sera stockée dans .oview/project.yaml)")
+	fmt.Println("  2. Obtenir une clé API (ouvre le navigateur)")
+	fmt.Println("  3. Configurer plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-3]", []string{"1", "2", "3"}, "3")
+
+	switch choice {
+	case "1":
+		fmt.Print("Entrez votre clé API Anthropic: ")
+		apiKey, _ := reader.ReadString('\n')
+		apiKey = strings.TrimSpace(apiKey)
+		if apiKey != "" {
+			cfg.APIKey = apiKey
+			fmt.Println("⚠️  Clé stockée dans .oview/project.yaml - Ne pas commiter ce fichier!")
+			// Test again
+			if err := testClaudeConnection(apiKey); err != nil {
+				return fmt.Errorf("clé invalide: %w", err)
+			}
+			fmt.Println("✅ Clé validée")
+		}
+	case "2":
+		openBrowser("https://console.anthropic.com/settings/keys")
+		fmt.Println("📖 Page ouverte dans le navigateur")
+		fmt.Println("   Après avoir obtenu votre clé, configurez: export ANTHROPIC_API_KEY='...'")
+	case "3":
+		fmt.Println("💡 Configurez plus tard: export ANTHROPIC_API_KEY='...'")
+	}
+
+	return nil
+}
+
+// testOpenAIConnection tests OpenAI API connection
+func testOpenAIConnection(apiKey, model string) error {
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	reqBody := strings.NewReader(`{"input":"test","model":"` + model + `"}`)
+	req, err := http.NewRequest("POST", "https://api.openai.com/v1/embeddings", reqBody)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("connexion échouée: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("code %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// testOpenAILLMConnection tests OpenAI LLM API connection
+func testOpenAILLMConnection(apiKey, model string) error {
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	reqBody := strings.NewReader(`{"model":"` + model + `","messages":[{"role":"user","content":"test"}],"max_tokens":5}`)
+	req, err := http.NewRequest("POST", "https://api.openai.com/v1/chat/completions", reqBody)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("connexion échouée: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("code %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// testClaudeConnection tests Claude API connection
+func testClaudeConnection(apiKey string) error {
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	reqBody := strings.NewReader(`{"model":"claude-3-5-sonnet-20241022","max_tokens":5,"messages":[{"role":"user","content":"test"}]}`)
+	req, err := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", reqBody)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("connexion échouée: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("code %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// testOllamaConnection tests if Ollama is running
+func testOllamaConnection(baseURL string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	resp, err := client.Get(baseURL + "/api/tags")
+	if err != nil {
+		return fmt.Errorf("connexion échouée: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("code %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// testOllamaModel tests if a model is available in Ollama
+func testOllamaModel(baseURL, modelName string) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+
+	resp, err := client.Get(baseURL + "/api/tags")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
+
+	for _, m := range result.Models {
+		if strings.HasPrefix(m.Name, modelName) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("modèle non trouvé")
+}
+
+// openBrowser opens a URL in the default browser
+func openBrowser(url string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	default:
+		return fmt.Errorf("plateforme non supportée")
+	}
+
+	return cmd.Start()
+}
+
+// isOllamaInstalled checks if ollama command is available
+func isOllamaInstalled() bool {
+	_, err := exec.LookPath("ollama")
+	return err == nil
+}
+
+// promptInstallOllama prompts user to install Ollama
+func promptInstallOllama(reader *bufio.Reader) error {
+	fmt.Println()
+	fmt.Println("Ollama est requis pour utiliser des modèles locaux.")
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  1. Installer Ollama maintenant (recommandé)")
+	fmt.Println("  2. Installer manuellement plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-2]", []string{"1", "2"}, "1")
+
+	if choice == "1" {
+		fmt.Println()
+		fmt.Println("🔧 Installation d'Ollama...")
+
+		switch runtime.GOOS {
+		case "linux":
+			// Use the official install script
+			cmd := exec.Command("bash", "-c", "curl -fsSL https://ollama.com/install.sh | sh")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			if err := cmd.Run(); err != nil {
+				return fmt.Errorf("échec d'installation: %w", err)
+			}
+			fmt.Println("✅ Ollama installé")
+
+		case "darwin":
+			fmt.Println("Pour macOS, installez Ollama avec:")
+			fmt.Println()
+			fmt.Println("Option 1 - Homebrew:")
+			fmt.Println("  brew install ollama")
+			fmt.Println()
+			fmt.Println("Option 2 - Application:")
+			fmt.Println("  Télécharger depuis https://ollama.com/download")
+			fmt.Println()
+			openBrowser("https://ollama.com/download")
+			fmt.Println("📖 Page ouverte dans le navigateur")
+			fmt.Println()
+			fmt.Println("Appuyez sur Entrée après l'installation...")
+			reader.ReadString('\n')
+
+		default:
+			openBrowser("https://ollama.com/download")
+			fmt.Println("📖 Page de téléchargement ouverte")
+			fmt.Println()
+			fmt.Println("Appuyez sur Entrée après l'installation...")
+			reader.ReadString('\n')
+		}
+
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Println("💡 Installez Ollama plus tard: https://ollama.com/download")
+	return fmt.Errorf("ollama non installé")
+}
+
+// promptStartOllama prompts user to start Ollama
+func promptStartOllama(reader *bufio.Reader) error {
+	fmt.Println("Options:")
+	fmt.Println("  1. Lancer Ollama maintenant (en arrière-plan)")
+	fmt.Println("  2. Lancer manuellement plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-2]", []string{"1", "2"}, "1")
+
+	if choice == "1" {
+		fmt.Println()
+		fmt.Println("🚀 Lancement d'Ollama...")
+
+		// Start ollama serve in background
+		cmd := exec.Command("ollama", "serve")
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("échec de lancement: %w", err)
+		}
+
+		fmt.Println("✅ Ollama lancé en arrière-plan")
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Println("💡 Lancez Ollama plus tard avec: ollama serve")
+	return fmt.Errorf("ollama non lancé")
+}
+
+// promptPullOllamaModel prompts user to pull an Ollama model
+func promptPullOllamaModel(reader *bufio.Reader, model string) error {
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  1. Télécharger le modèle maintenant (recommandé)")
+	fmt.Println("  2. Télécharger manuellement plus tard")
+	fmt.Println()
+
+	choice := promptChoice(reader, "Choisir [1-2]", []string{"1", "2"}, "1")
+
+	if choice == "1" {
+		fmt.Println()
+		fmt.Printf("📥 Téléchargement du modèle %s...\n", model)
+		fmt.Println("   (Cela peut prendre quelques minutes)")
+		fmt.Println()
+
+		// Pull the model
+		cmd := exec.Command("ollama", "pull", model)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("échec du téléchargement: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Println("✅ Modèle téléchargé")
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Printf("💡 Téléchargez le modèle plus tard avec: ollama pull %s\n", model)
+	return fmt.Errorf("modèle non téléchargé")
 }

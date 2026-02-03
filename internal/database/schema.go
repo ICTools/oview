@@ -1,7 +1,14 @@
 package database
 
-// SQL schema for pgvector-based RAG storage
-const SchemaSQL = `
+import "fmt"
+
+// GetSchemaSQL returns the schema SQL with the specified embedding dimension
+func GetSchemaSQL(embeddingDim int) string {
+	if embeddingDim <= 0 {
+		embeddingDim = 1536 // Default to OpenAI dimension
+	}
+
+	return fmt.Sprintf(`
 -- Create extension if not exists
 CREATE EXTENSION IF NOT EXISTS vector;
 
@@ -23,8 +30,8 @@ CREATE TABLE IF NOT EXISTS chunks (
     content_hash VARCHAR(64) NOT NULL,  -- SHA256 of content for deduplication
 
     -- Embedding
-    embedding vector(1536),  -- Dimension for text-embedding-ada-002 or similar
-    embedding_model VARCHAR(100),  -- Model used to generate this embedding (e.g., "bge-code", "text-embedding-3-small")
+    embedding vector(%d),  -- Dimension configured in project.yaml
+    embedding_model VARCHAR(100),  -- Model used to generate this embedding
 
     -- Metadata
     metadata JSONB,
@@ -62,9 +69,5 @@ $$ language 'plpgsql';
 DROP TRIGGER IF EXISTS update_chunks_updated_at ON chunks;
 CREATE TRIGGER update_chunks_updated_at BEFORE UPDATE ON chunks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-`
-
-// GetSchemaSQL returns the schema SQL
-func GetSchemaSQL() string {
-	return SchemaSQL
+`, embeddingDim)
 }

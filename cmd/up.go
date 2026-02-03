@@ -75,7 +75,9 @@ func runUp(cmd *cobra.Command, args []string) error {
 	if projectConfig.Database.Password != "" {
 		dbPassword = projectConfig.Database.Password
 	} else {
-		dbPassword = generatePassword()
+		// Use a simple fixed password for local development
+		// No security concern as it's local-only and not exposed
+		dbPassword = "oview_dev"
 	}
 
 	// Connect to Postgres
@@ -116,9 +118,13 @@ func runUp(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println("   ✓ pgvector enabled")
 
-	// Create schema
-	fmt.Println("🏗️  Creating RAG schema...")
-	if err := dbClient.CreateSchema(dbName); err != nil {
+	// Create schema with the configured embedding dimension
+	embeddingDim := projectConfig.Embeddings.Dim
+	if embeddingDim == 0 {
+		embeddingDim = 1536 // Default if not configured
+	}
+	fmt.Printf("🏗️  Creating RAG schema (embedding dimension: %d)...\n", embeddingDim)
+	if err := dbClient.CreateSchema(dbName, embeddingDim); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 	fmt.Println("   ✓ Schema created")
