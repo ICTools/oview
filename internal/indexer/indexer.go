@@ -18,12 +18,13 @@ import (
 
 // Indexer indexes a project into the database
 type Indexer struct {
-	projectPath string
-	projectID   string
-	db          *sql.DB
-	chunker     *Chunker
-	embedder    embeddings.Generator
-	ragConfig   *config.RAGConfig
+	projectPath    string
+	projectID      string
+	db             *sql.DB
+	chunker        *Chunker
+	embedder       embeddings.Generator
+	embeddingModel string // Model name to store in DB
+	ragConfig      *config.RAGConfig
 }
 
 // Stats tracks indexing statistics
@@ -52,14 +53,25 @@ type FileInfo struct {
 }
 
 // New creates a new indexer
-func New(projectPath, projectID string, db *sql.DB, ragConfig *config.RAGConfig) *Indexer {
+func New(projectPath, projectID string, db *sql.DB, ragConfig *config.RAGConfig, embedder embeddings.Generator, embeddingModel string) *Indexer {
+	// Use provided embedder, or default to stub if nil
+	if embedder == nil {
+		embedder = embeddings.NewStubGenerator(1536)
+	}
+
+	// Use model name from embedder if not provided
+	if embeddingModel == "" {
+		embeddingModel = embedder.Name()
+	}
+
 	return &Indexer{
-		projectPath: projectPath,
-		projectID:   projectID,
-		db:          db,
-		chunker:     NewChunker(ragConfig),
-		embedder:    embeddings.NewStubGenerator(1536),
-		ragConfig:   ragConfig,
+		projectPath:    projectPath,
+		projectID:      projectID,
+		db:             db,
+		chunker:        NewChunker(ragConfig),
+		embedder:       embedder,
+		embeddingModel: embeddingModel,
+		ragConfig:      ragConfig,
 	}
 }
 
@@ -263,10 +275,12 @@ func (idx *Indexer) storeChunk(chunk Chunk, commitSHA string) error {
 
 	// Insert chunk
 	query := `
-		INSERT INTO chunks (project_id, source, type, path, language, symbol, component, content, content_hash, embedding, metadata, commit_sha)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		INSERT INTO chunks (project_id, source, type, path, language, symbol, component, content, content_hash, embedding, embedding_model, metadata, commit_sha)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (project_id, content_hash) DO UPDATE
-		SET updated_at = CURRENT_TIMESTAMP
+		SET updated_at = CURRENT_TIMESTAMP,
+		    embedding = EXCLUDED.embedding,
+		    embedding_model = EXCLUDED.embedding_model
 	`
 
 	_, err = idx.db.Exec(query,
@@ -280,6 +294,7 @@ func (idx *Indexer) storeChunk(chunk Chunk, commitSHA string) error {
 		chunk.Content,
 		contentHash,
 		embeddingStr,
+		idx.embeddingModel,
 		metadataJSON,
 		nullString(commitSHA),
 	)

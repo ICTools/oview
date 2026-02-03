@@ -7,7 +7,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yourusername/oview/internal/config"
 	"github.com/yourusername/oview/internal/database"
+	"github.com/yourusername/oview/internal/embeddings"
 	"github.com/yourusername/oview/internal/indexer"
+)
+
+var (
+	forceReindex bool
 )
 
 var indexCmd = &cobra.Command{
@@ -23,6 +28,7 @@ var indexCmd = &cobra.Command{
 }
 
 func init() {
+	indexCmd.Flags().BoolVar(&forceReindex, "force", false, "Force full reindex (clears existing embeddings)")
 	rootCmd.AddCommand(indexCmd)
 }
 
@@ -85,11 +91,55 @@ func runIndex(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("   ✓ Connected")
 
+	// Create embeddings generator based on project config
+	embConfig := projectConfig.Embeddings
+	var embedder embeddings.Generator
+
+	fmt.Printf("📊 Embeddings config: provider=%s, model=%s, dim=%d\n",
+		embConfig.Provider, embConfig.Model, embConfig.Dim)
+
+	switch embConfig.Provider {
+	case "openai":
+		// Get API key from config or environment
+		apiKey := embConfig.APIKey
+		if apiKey == "" {
+			apiKey = os.Getenv("OPENAI_API_KEY")
+		}
+		if apiKey == "" {
+			return fmt.Errorf("OpenAI API key required. Set in .oview/project.yaml or OPENAI_API_KEY environment variable")
+		}
+		embedder = embeddings.NewOpenAIGenerator(apiKey, embConfig.Model)
+		fmt.Printf("🤖 Using OpenAI embeddings: %s\n", embedder.Name())
+
+	case "ollama":
+		baseURL := embConfig.BaseURL
+		if baseURL == "" {
+			baseURL = "http://localhost:11434"
+		}
+		embedder = embeddings.NewOllamaGenerator(baseURL, embConfig.Model)
+		fmt.Printf("🤖 Using Ollama embeddings: %s\n", embedder.Name())
+		fmt.Printf("   ⚠️  Make sure: ollama serve && ollama pull %s\n", embConfig.Model)
+
+	case "stub":
+		embedder = embeddings.NewStubGenerator(embConfig.Dim)
+		fmt.Println("⚠️  Using stub embeddings (no semantic meaning)")
+
+	default:
+		return fmt.Errorf("unknown embeddings provider: %s (edit .oview/project.yaml)", embConfig.Provider)
+	}
+
+	// Verify dimensions match
+	if embedder.Dimension() != embConfig.Dim {
+		fmt.Printf("⚠️  Warning: Model dimension (%d) doesn't match config (%d)\n",
+			embedder.Dimension(), embConfig.Dim)
+		fmt.Println("   Update .oview/project.yaml or run: oview up")
+	}
+
 	// Create indexer
 	fmt.Println("🔍 Starting indexing process...")
 	fmt.Println()
 
-	idx := indexer.New(projectPath, projectConfig.ProjectID, db, ragConfig)
+	idx := indexer.New(projectPath, projectConfig.ProjectID, db, ragConfig, embedder, embConfig.Model)
 
 	// Run indexing
 	stats, err := idx.Index()
@@ -110,10 +160,21 @@ func runIndex(cmd *cobra.Command, args []string) error {
 		fmt.Printf("  Git commit:     %s\n", stats.CommitSHA)
 	}
 	fmt.Println()
-	fmt.Println("Indexed data is now available for RAG queries!")
+	fmt.Println("✅ Indexed data is now available for RAG queries!")
 	fmt.Println()
-	fmt.Println("Note: Using stub embeddings (hash-based, no semantic meaning)")
-	fmt.Println("To use real embeddings, implement a proper embeddings generator")
+	fmt.Printf("Embedding model: %s\n", embConfig.Model)
+	fmt.Println()
+
+	// Show tips based on provider
+	if embConfig.Provider == "stub" {
+		fmt.Println("💡 To use real embeddings, edit .oview/project.yaml:")
+		fmt.Println("   embeddings:")
+		fmt.Println("     provider: openai    # or ollama")
+		fmt.Println("     model: text-embedding-3-small")
+		fmt.Println("     dim: 1536")
+		fmt.Println()
+		fmt.Println("   Then run: oview index")
+	}
 
 	return nil
 }

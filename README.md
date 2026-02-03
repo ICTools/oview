@@ -19,6 +19,23 @@
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+# From the repository
+cd oview
+./install.sh
+```
+
+The script will:
+- ✅ Check prerequisites (Docker, Go)
+- ✅ Build or download the binary
+- ✅ Install to `/usr/local/bin/`
+- ✅ Optionally set up infrastructure
+- ✅ Show next steps
+
+### Manual Installation
+
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -27,9 +44,14 @@ cd oview
 # Build
 go build -o oview .
 
-# Optional: Install globally
-sudo mv oview /usr/local/bin/
+# Install globally
+sudo cp oview /usr/local/bin/oview
+
+# Set up infrastructure
+oview install
 ```
+
+For detailed installation instructions, see [INSTALL.md](INSTALL.md).
 
 ## Quick Start
 
@@ -284,6 +306,38 @@ Shows the oview version:
 ```bash
 oview version
 ```
+
+### `oview uninstall`
+
+Uninstalls oview global infrastructure:
+- Stops and removes Docker containers
+- Removes Docker volumes (unless `--keep-data`)
+- Removes Docker network
+- Removes global configuration (unless `--keep-config`)
+
+**Options:**
+- `-f, --force`: Skip confirmation prompt
+- `--keep-data`: Keep Docker volumes (preserve all databases and n8n workflows)
+- `--keep-config`: Keep ~/.oview/config.yaml
+
+**Examples:**
+```bash
+# Complete uninstall (with confirmation)
+oview uninstall
+
+# Quick uninstall
+oview uninstall --force
+
+# Keep data for later reinstall
+oview uninstall --keep-data
+
+# Update oview (preserve everything)
+oview uninstall --keep-data --keep-config
+# ... update binary ...
+oview install
+```
+
+**See also:** [UNINSTALL.md](UNINSTALL.md) for detailed guide.
 
 ## Configuration Files
 
@@ -586,12 +640,12 @@ oview up
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    User Machine                          │
-│                                                           │
-│  ┌────────────┐       ┌───────────────────────────┐    │
-│  │   oview    │       │   Docker Infrastructure   │    │
-│  │    CLI     │──────▶│                           │    │
-│  └────────────┘       │  ┌─────────────────────┐  │    │
+│                    User Machine                         │
+│                                                         │
+│  ┌────────────┐        ┌───────────────────────────┐    │
+│  │   oview    │        │   Docker Infrastructure   │    │
+│  │    CLI     │──────▶ │                           │    │
+│  └────────────┘        │  ┌─────────────────────┐  │    │
 │         │              │  │  oview-postgres     │  │    │
 │         │              │  │  (pgvector)         │  │    │
 │         │              │  └─────────────────────┘  │    │
@@ -603,13 +657,13 @@ oview up
 │         │              │                           │    │
 │         │              │   oview-net (network)     │    │
 │         │              └───────────────────────────┘    │
-│         │                                                │
-│         ▼                                                │
+│         │                                               │
+│         ▼                                               │
 │  ┌──────────────┐                                       │
 │  │  Project 1   │                                       │
 │  │  .oview/     │ ──▶ DB: oview_project1                │
 │  └──────────────┘                                       │
-│                                                           │
+│                                                         │
 │  ┌──────────────┐                                       │
 │  │  Project 2   │                                       │
 │  │  .oview/     │ ──▶ DB: oview_project2                │

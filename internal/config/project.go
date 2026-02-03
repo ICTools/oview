@@ -16,6 +16,25 @@ type ProjectConfig struct {
 	Commands    CommandConfig     `yaml:"commands"`
 	Trello      TrelloConfig      `yaml:"trello"`
 	Database    DatabaseConfig    `yaml:"database,omitempty"`
+	Embeddings  EmbeddingsConfig  `yaml:"embeddings"`
+	LLM         LLMConfig         `yaml:"llm"`
+}
+
+// EmbeddingsConfig contains embeddings configuration
+type EmbeddingsConfig struct {
+	Provider string `yaml:"provider"` // stub, openai, ollama
+	Model    string `yaml:"model"`    // Model name (e.g., "text-embedding-3-small", "nomic-embed-text", "bge-code")
+	Dim      int    `yaml:"dim"`      // Vector dimension (768, 1536, etc.)
+	APIKey   string `yaml:"api_key,omitempty"` // Optional: API key for OpenAI (prefer env var)
+	BaseURL  string `yaml:"base_url,omitempty"` // Optional: Base URL for Ollama or custom endpoint
+}
+
+// LLMConfig contains LLM/AI model configuration
+type LLMConfig struct {
+	Provider string `yaml:"provider"` // claude-code, claude-api, openai, ollama
+	Model    string `yaml:"model"`    // Model name (e.g., "claude-sonnet-4.5", "gpt-4", "llama3")
+	APIKey   string `yaml:"api_key,omitempty"` // Optional: API key (prefer env var)
+	BaseURL  string `yaml:"base_url,omitempty"` // Optional: Custom endpoint
 }
 
 // StackInfo contains detected stack information

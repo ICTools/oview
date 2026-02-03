@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS chunks (
 
     -- Embedding
     embedding vector(1536),  -- Dimension for text-embedding-ada-002 or similar
+    embedding_model VARCHAR(100),  -- Model used to generate this embedding (e.g., "bge-code", "text-embedding-3-small")
 
     -- Metadata
     metadata JSONB,
