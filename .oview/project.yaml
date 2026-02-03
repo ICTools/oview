@@ -1,0 +1,34 @@
+project_id: 224c26562aa9f37c
+project_slug: oview
+stack:
+    symfony: false
+    docker: false
+    makefile: false
+    frontend:
+        detected: false
+    infrastructure:
+        redis: false
+        rabbitmq: false
+        elasticsearch: false
+    languages: []
+    frameworks: []
+commands: {}
+trello:
+    list_ids:
+        backlog: ""
+        done: ""
+        in_progress: ""
+        review: ""
+        todo: ""
+database:
+    name: oview_oview
+    user: oview_oview
+    password: 9ef57b8a99d63b99130ff58e14ff542e
+embeddings:
+    provider: ollama
+    model: nomic-embed-text
+    dim: 768
+    base_url: http://localhost:11434
+llm:
+    provider: claude-code
+    model: claude-sonnet-4.5

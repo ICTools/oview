@@ -1,0 +1,35 @@
+{
+  "files": {
+    "README.md": {
+      "path": "README.md",
+      "hash": "97cea5a237b8030f01e52b792d545ec9530e79497f0f627ee643f88b28f82f11",
+      "chunks": 56,
+      "indexed_at": "2026-02-03T20:12:18.842698833+01:00"
+    },
+    "docs/HOW_IT_WORKS.md": {
+      "path": "docs/HOW_IT_WORKS.md",
+      "hash": "6a96a164e68b5cff633dc2b4f3047d7b588c41178929b4c899b296c6848eff03",
+      "chunks": 48,
+      "indexed_at": "2026-02-03T20:12:20.127066225+01:00"
+    },
+    "docs/MCP_INTEGRATION.md": {
+      "path": "docs/MCP_INTEGRATION.md",
+      "hash": "2a3706467950a6173af383aa9655d79c84ce84e1caab26143a3de7c496b0f289",
+      "chunks": 40,
+      "indexed_at": "2026-02-03T20:12:21.117486566+01:00"
+    },
+    "docs/QUICK_START_MCP.md": {
+      "path": "docs/QUICK_START_MCP.md",
+      "hash": "d17b07f9598f66649a7fc89965b7ca84af71ce0e6de369da1b3790e8efaed54c",
+      "chunks": 13,
+      "indexed_at": "2026-02-03T20:12:21.521358508+01:00"
+    },
+    "docs/SIMPLE_EXPLANATION.md": {
+      "path": "docs/SIMPLE_EXPLANATION.md",
+      "hash": "c3e790dbbd5f9d8a04d0fb856d37d2e76599de3014dcd5039428c626d2bbb1b1",
+      "chunks": 24,
+      "indexed_at": "2026-02-03T20:12:22.233244214+01:00"
+    }
+  },
+  "last_update": "2026-02-03T20:12:17.415047916+01:00"
+}

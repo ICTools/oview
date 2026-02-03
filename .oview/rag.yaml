@@ -1,0 +1,66 @@
+chunking:
+    php:
+        strategy: function
+        max_size: 2000
+        max_tokens: 500
+        overlap: 100
+    javascript:
+        strategy: function
+        max_size: 2000
+        max_tokens: 500
+        overlap: 100
+    twig:
+        strategy: file
+        max_size: 1500
+        max_tokens: 400
+        overlap: 50
+    yaml:
+        strategy: section
+        max_size: 1000
+        max_tokens: 300
+        overlap: 50
+    makefile:
+        strategy: section
+        max_size: 800
+        max_tokens: 200
+        overlap: 20
+    docker:
+        strategy: section
+        max_size: 1000
+        max_tokens: 300
+        overlap: 50
+    generic:
+        strategy: size
+        max_size: 1500
+        max_tokens: 400
+        overlap: 100
+indexing:
+    include_paths:
+        - src/
+        - config/
+        - templates/
+        - assets/
+        - tests/
+        - Makefile
+        - docker-compose.yml
+        - compose.yaml
+        - README.md
+        - docs/
+    exclude_paths:
+        - vendor/
+        - node_modules/
+        - var/
+        - public/bundles/
+        - .git/
+    extensions:
+        - .php
+        - .twig
+        - .yaml
+        - .yml
+        - .js
+        - .ts
+        - .jsx
+        - .tsx
+        - .json
+        - .md
+        - .txt
