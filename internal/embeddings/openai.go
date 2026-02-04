@@ -32,9 +32,11 @@ func NewOpenAIGenerator(apiKey string, model string) *OpenAIGenerator {
 
 // Embed generates an embedding vector for the given text
 func (g *OpenAIGenerator) Embed(text string) ([]float32, error) {
-	// Truncate text if too long (OpenAI limit: 8191 tokens ≈ 30k chars)
-	if len(text) > 30000 {
-		text = text[:30000]
+	// Truncate text if too long based on model's max context length
+	// Using ~4 characters per token as a conservative estimate
+	maxChars := g.MaxContextLength() * 4
+	if len(text) > maxChars {
+		text = text[:maxChars]
 	}
 
 	// Create embedding request
@@ -72,6 +74,12 @@ func (g *OpenAIGenerator) Dimension() int {
 		return 3072
 	}
 	return 1536
+}
+
+// MaxContextLength returns the maximum context length in tokens
+func (g *OpenAIGenerator) MaxContextLength() int {
+	// All OpenAI embedding models have 8191 token limit
+	return 8191
 }
 
 // Name returns the name of the embedding model

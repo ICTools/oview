@@ -71,6 +71,12 @@ func (g *StubGenerator) Dimension() int {
 	return g.dimension
 }
 
+// MaxContextLength returns the maximum context length in tokens
+// Stub generator has no real limit, but we return a reasonable value
+func (g *StubGenerator) MaxContextLength() int {
+	return 8192 // Arbitrary high limit for stub
+}
+
 // Name returns the name of the embedding model
 func (g *StubGenerator) Name() string {
 	return "stub-hash-based (PLACEHOLDER - NO SEMANTIC MEANING)"

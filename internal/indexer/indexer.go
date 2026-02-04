@@ -121,7 +121,15 @@ func (idx *Indexer) Index() (*Stats, error) {
 
 		// Store chunks
 		storedCount := 0
+		maxContextChars := idx.embedder.MaxContextLength() * 4 // ~4 chars per token
 		for _, chunk := range chunks {
+			// Warn if chunk is close to model's limit (>80% of max)
+			chunkSize := len(chunk.Content)
+			if chunkSize > int(float64(maxContextChars)*0.8) {
+				fmt.Printf("  ⚠️  Large chunk (%d chars, model max: %d) may be truncated for %s\n",
+					chunkSize, maxContextChars, idx.embedder.Name())
+			}
+
 			if err := idx.storeChunk(chunk, stats.CommitSHA); err != nil {
 				fmt.Printf("  ⚠️  Failed to store chunk: %v\n", err)
 				continue

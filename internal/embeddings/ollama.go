@@ -46,9 +46,9 @@ type OllamaEmbeddingResponse struct {
 
 // Embed generates an embedding vector for the given text
 func (g *OllamaGenerator) Embed(text string) ([]float32, error) {
-	// Truncate text if too long (most embedding models support 512-8192 tokens)
-	// Using 8000 chars ≈ 2000 tokens to be safe
-	maxChars := 8000
+	// Truncate text if too long based on model's max context length
+	// Using ~4 characters per token as a conservative estimate
+	maxChars := g.MaxContextLength() * 4
 	if len(text) > maxChars {
 		text = text[:maxChars]
 	}
@@ -106,6 +106,21 @@ func (g *OllamaGenerator) Dimension() int {
 		return 384
 	default:
 		return 768 // Default
+	}
+}
+
+// MaxContextLength returns the maximum context length in tokens
+func (g *OllamaGenerator) MaxContextLength() int {
+	// Different Ollama models have different context limits
+	switch g.model {
+	case "nomic-embed-text":
+		return 8192 // 8192 tokens
+	case "mxbai-embed-large":
+		return 512 // 512 tokens
+	case "all-minilm":
+		return 256 // 256 tokens
+	default:
+		return 2048 // Conservative default
 	}
 }
 

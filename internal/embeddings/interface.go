@@ -8,6 +8,9 @@ type Generator interface {
 	// Dimension returns the dimension of the embedding vectors
 	Dimension() int
 
+	// MaxContextLength returns the maximum context length in tokens
+	MaxContextLength() int
+
 	// Name returns the name of the embedding model
 	Name() string
 }
