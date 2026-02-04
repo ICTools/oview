@@ -100,7 +100,7 @@ func (s *Server) handleInitialize(req *MCPRequest) *MCPResponse {
 			},
 			"serverInfo": map[string]interface{}{
 				"name":    "oview",
-				"version": "0.1.0",
+				"version": "0.2.0",
 			},
 		},
 	}

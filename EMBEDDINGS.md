@@ -252,6 +252,6 @@ Une fois les vrais embeddings en place, vous pourrez :
 1. Implémenter un système de requêtes RAG
 2. Faire des recherches sémantiques : "comment fonctionne l'authentification ?"
 3. Utiliser les agents Claude avec contexte RAG pertinent
-4. Construire des workflows n8n qui utilisent le contexte du code
+4. Construire des automatisations qui utilisent le contexte du code
 
 **Voulez-vous que je vous aide à implémenter un de ces points ?**

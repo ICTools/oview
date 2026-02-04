@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**oview** is a Go CLI tool that bootstraps a local Software Factory environment for multiple projects with shared infrastructure (Postgres+pgvector, n8n) and per-project RAG indexing.
+**oview** is a Go CLI tool that bootstraps a local Software Factory environment for multiple projects with shared infrastructure (Postgres+pgvector) and per-project RAG indexing.
 
 ## Implementation Status: ✅ COMPLETE
 
@@ -11,7 +11,6 @@
 #### 1. Global Infrastructure (`oview install`) ✅
 - Creates shared Docker network
 - Starts Postgres 16 container with pgvector extension
-- Starts n8n workflow engine container
 - Port conflict detection and resolution
 - Persistent configuration in `~/.oview/config.yaml`
 - Idempotent (safe to run multiple times)
@@ -143,7 +142,6 @@ oview/
 - **CLI Framework:** Cobra
 - **Config:** Viper + YAML
 - **Database:** PostgreSQL 16 with pgvector extension
-- **Workflow Engine:** n8n
 - **Containerization:** Docker
 - **Networking:** Docker networks
 
@@ -230,7 +228,6 @@ All commands tested on test Symfony project:
 - [x] `oview up` - Project runtime setup
 - [x] `oview index` - Codebase indexing with RAG
 - [x] Shared Postgres + pgvector container
-- [x] Shared n8n container
 - [x] Per-project databases
 - [x] Stack detection (Symfony, Docker, Makefile, Frontend)
 - [x] Claude agent file generation (8 roles)

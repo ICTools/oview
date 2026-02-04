@@ -14,7 +14,6 @@ func main() {
 	cfg := config.DefaultGlobalConfig()
 	fmt.Println("Default global config:")
 	fmt.Printf("  Postgres: %s:%d (user: %s)\n", cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresUser)
-	fmt.Printf("  n8n: %s\n", cfg.N8nURL)
 	fmt.Printf("  Network: %s\n", cfg.DockerNetworkName)
 
 	// Test validation

@@ -3,7 +3,6 @@ package docker
 import (
 	"fmt"
 	"os/exec"
-	"strconv"
 	"strings"
 )
 
@@ -60,48 +59,6 @@ func (c *Client) CreatePostgresContainer(name, network, volume, password string,
 	// Wait for Postgres to be ready
 	if err := c.WaitForPostgres(name); err != nil {
 		return fmt.Errorf("postgres container started but not ready: %w", err)
-	}
-
-	return nil
-}
-
-// CreateN8nContainer creates an n8n container
-func (c *Client) CreateN8nContainer(name, network, volume string, port int) error {
-	// Check if container already exists
-	exists, err := c.ContainerExists(name)
-	if err != nil {
-		return err
-	}
-
-	if exists {
-		// Start it if not running
-		return c.StartContainer(name)
-	}
-
-	// Create volume if it doesn't exist
-	if err := c.CreateVolume(volume); err != nil {
-		return fmt.Errorf("failed to create volume: %w", err)
-	}
-
-	// Build docker run command
-	args := []string{
-		"run",
-		"-d",
-		"--name", name,
-		"--network", network,
-		"-p", fmt.Sprintf("%d:5678", port),
-		"-e", "N8N_HOST=localhost",
-		"-e", fmt.Sprintf("N8N_PORT=%d", port),
-		"-e", "N8N_PROTOCOL=http",
-		"-e", "WEBHOOK_URL=http://localhost:" + strconv.Itoa(port) + "/",
-		"-v", fmt.Sprintf("%s:/home/node/.n8n", volume),
-		"--restart", "unless-stopped",
-		"n8nio/n8n:latest",
-	}
-
-	cmd := exec.Command("docker", args...)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to create n8n container: %w\nOutput: %s", err, output)
 	}
 
 	return nil

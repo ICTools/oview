@@ -169,7 +169,6 @@ docker ps
 # Conteneurs oview créés ?
 docker ps | grep oview
 # oview-postgres
-# oview-n8n
 ```
 
 ### Vérifier la config
@@ -279,9 +278,9 @@ sudo rm /usr/local/bin/oview
 
 ```bash
 # 1. Infrastructure Docker
-docker stop oview-postgres oview-n8n
-docker rm oview-postgres oview-n8n
-docker volume rm oview-postgres-data oview-n8n-data
+docker stop oview-postgres
+docker rm oview-postgres
+docker volume rm oview-postgres-data
 docker network rm oview-net
 
 # 2. Binaire
@@ -366,7 +365,6 @@ docker ps
 
 # Ports disponibles ?
 sudo lsof -i :5432  # Postgres
-sudo lsof -i :5678  # n8n
 
 # Si ports occupés, ils seront automatiquement changés
 ```
@@ -453,10 +451,9 @@ su - user2
 oview init  # Dans son projet
 oview up    # Crée sa DB
 
-# Les deux utilisent le même Postgres/n8n
+# Les deux utilisent le même Postgres
 docker ps | grep oview
 # oview-postgres (partagé)
-# oview-n8n (partagé)
 
 # Mais chacun a sa propre DB
 docker exec oview-postgres psql -U oview -l

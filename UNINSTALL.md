@@ -18,9 +18,7 @@ oview uninstall
 
 **Supprime :**
 - ✅ Conteneur `oview-postgres`
-- ✅ Conteneur `oview-n8n`
 - ✅ Volume `oview-postgres-data` (⚠️ **TOUTES les bases de données**)
-- ✅ Volume `oview-n8n-data` (⚠️ **TOUS les workflows**)
 - ✅ Réseau `oview-net`
 - ✅ Fichier `~/.oview/config.yaml`
 
@@ -36,7 +34,6 @@ oview uninstall --keep-data
 
 **Préserve :**
 - 💾 Volume Postgres (toutes vos bases de données)
-- 💾 Volume n8n (tous vos workflows)
 
 **Supprime :**
 - 🐳 Conteneurs
@@ -143,9 +140,6 @@ oview install  # Redémarre tout
 docker run --rm -v oview-postgres-data:/data -v $(pwd):/backup \
   ubuntu tar czf /backup/oview-postgres-backup.tar.gz -C /data .
 
-docker run --rm -v oview-n8n-data:/data -v $(pwd):/backup \
-  ubuntu tar czf /backup/oview-n8n-backup.tar.gz -C /data .
-
 # 2. Copier les backups vers la nouvelle machine
 scp oview-*.tar.gz user@new-machine:~/
 ```
@@ -154,14 +148,10 @@ scp oview-*.tar.gz user@new-machine:~/
 ```bash
 # 1. Créer les volumes
 docker volume create oview-postgres-data
-docker volume create oview-n8n-data
 
 # 2. Restaurer
 docker run --rm -v oview-postgres-data:/data -v $(pwd):/backup \
   ubuntu tar xzf /backup/oview-postgres-backup.tar.gz -C /data
-
-docker run --rm -v oview-n8n-data:/data -v $(pwd):/backup \
-  ubuntu tar xzf /backup/oview-n8n-backup.tar.gz -C /data
 
 # 3. Installer oview
 oview install
@@ -195,11 +185,11 @@ Si `oview uninstall` échoue, nettoyage manuel :
 
 ```bash
 # 1. Arrêter et supprimer les conteneurs
-docker stop oview-postgres oview-n8n
-docker rm oview-postgres oview-n8n
+docker stop oview-postgres
+docker rm oview-postgres
 
 # 2. Supprimer les volumes
-docker volume rm oview-postgres-data oview-n8n-data
+docker volume rm oview-postgres-data
 
 # 3. Supprimer le réseau
 docker network rm oview-net
@@ -269,16 +259,15 @@ Votre code source n'est jamais touché.
 
 Environ :
 - Volumes Postgres : 100-500 MB (dépend du nombre de projets indexés)
-- Volume n8n : 50-200 MB
 - Conteneurs : 500 MB
-- **Total : ~1-2 GB**
+- **Total : ~1 GB**
 
 ### Puis-je désinstaller sans le binaire oview ?
 
 Oui, nettoyage manuel :
 ```bash
-docker rm -f oview-postgres oview-n8n
-docker volume rm oview-postgres-data oview-n8n-data
+docker rm -f oview-postgres
+docker volume rm oview-postgres-data
 docker network rm oview-net
 rm -rf ~/.oview
 ```

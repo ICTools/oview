@@ -19,12 +19,6 @@ type GlobalConfig struct {
 	PostgresContainerName string `yaml:"postgres_container_name"`
 	PostgresVolume        string `yaml:"postgres_volume"`
 
-	// n8n settings
-	N8nURL           string `yaml:"n8n_url"`
-	N8nPort          int    `yaml:"n8n_port"`
-	N8nContainerName string `yaml:"n8n_container_name"`
-	N8nVolume        string `yaml:"n8n_volume"`
-
 	// Docker network
 	DockerNetworkName string `yaml:"docker_network_name"`
 
@@ -40,10 +34,6 @@ func DefaultGlobalConfig() *GlobalConfig {
 		PostgresPassword:      generatePassword(),
 		PostgresContainerName: "oview-postgres",
 		PostgresVolume:        "oview-postgres-data",
-		N8nURL:                "http://localhost:5678",
-		N8nPort:               5678,
-		N8nContainerName:      "oview-n8n",
-		N8nVolume:             "oview-n8n-data",
 		DockerNetworkName:     "oview-net",
 	}
 }
@@ -145,12 +135,6 @@ func (c *GlobalConfig) Validate() error {
 	}
 	if c.PostgresContainerName == "" {
 		return fmt.Errorf("postgres_container_name is required")
-	}
-	if c.N8nPort == 0 {
-		return fmt.Errorf("n8n_port is required")
-	}
-	if c.N8nContainerName == "" {
-		return fmt.Errorf("n8n_container_name is required")
 	}
 	if c.DockerNetworkName == "" {
 		return fmt.Errorf("docker_network_name is required")

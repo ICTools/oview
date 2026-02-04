@@ -10,7 +10,7 @@ var rootCmd = &cobra.Command{
 	Use:   "oview",
 	Short: "oview - Local Software Factory Environment Manager",
 	Long: `oview is a CLI tool that bootstraps a local Software Factory environment
-for multiple projects with shared infrastructure (Postgres+pgvector, n8n).`,
+for multiple projects with shared infrastructure (Postgres+pgvector).`,
 }
 
 // Execute runs the root command

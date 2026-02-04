@@ -149,12 +149,9 @@ func runUp(cmd *cobra.Command, args []string) error {
 	fmt.Println("Database connection:")
 	fmt.Printf("  DSN: %s\n", projectDSN)
 	fmt.Println()
-	fmt.Println("n8n workflow engine:")
-	fmt.Printf("  URL: %s\n", globalConfig.N8nURL)
-	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Run: oview index")
-	fmt.Println("  2. Start building your automation workflows")
+	fmt.Println("  2. Query your codebase using the MCP server")
 
 	return nil
 }

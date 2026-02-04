@@ -1,15 +1,14 @@
 # oview - Local Software Factory Environment
 
-`oview` is a CLI tool that bootstraps a local Software Factory environment for multiple projects with shared infrastructure (Postgres+pgvector, n8n) and per-project RAG indexing.
+`oview` is a CLI tool that bootstraps a local Software Factory environment for multiple projects with shared infrastructure (Postgres+pgvector) and per-project RAG indexing.
 
 ## Features
 
-- **Shared Infrastructure**: One Postgres (with pgvector) and one n8n instance for all projects
+- **Shared Infrastructure**: One Postgres (with pgvector) instance for all projects
 - **Per-Project Databases**: Isolated database for each project
 - **Stack Detection**: Automatically detects Symfony, Docker, Makefile, frontend frameworks
 - **Claude Agent Templates**: Generates role-specific AI agent instruction files
 - **RAG Indexing**: Indexes your codebase into pgvector for semantic search
-- **Workflow Orchestration**: Integration with n8n for automation
 
 ## Prerequisites
 
@@ -57,7 +56,7 @@ For detailed installation instructions, see [INSTALL.md](INSTALL.md).
 
 ### 1. Install Global Infrastructure
 
-Run once to set up shared Postgres and n8n:
+Run once to set up shared Postgres:
 
 ```bash
 oview install
@@ -71,8 +70,6 @@ oview install
    ✓ Network ready
 🐘 Creating Postgres container 'oview-postgres'...
    ✓ Postgres running on port 5432
-🤖 Creating n8n container 'oview-n8n'...
-   ✓ n8n running on http://localhost:5678
 💾 Saving configuration...
    ✓ Configuration saved to /home/user/.oview/config.yaml
 
@@ -82,8 +79,6 @@ Connection details:
   Postgres: localhost:5432
   User:     oview
   Password: oview_password_change_me
-
-  n8n:      http://localhost:5678
 ```
 
 ### 2. Initialize a Project
@@ -160,9 +155,6 @@ oview up
 
 Database connection:
   DSN: postgres://oview_my-project:xxx@localhost:5432/oview_my-project
-
-n8n workflow engine:
-  URL: http://localhost:5678
 ```
 
 ### 4. Index Your Codebase
@@ -234,7 +226,6 @@ your-project/
 Installs global infrastructure (run once):
 - Creates `oview-net` Docker network
 - Starts `oview-postgres` container (Postgres 16 + pgvector)
-- Starts `oview-n8n` container
 - Saves configuration to `~/.oview/config.yaml`
 - Handles port conflicts automatically
 
@@ -317,7 +308,7 @@ Uninstalls oview global infrastructure:
 
 **Options:**
 - `-f, --force`: Skip confirmation prompt
-- `--keep-data`: Keep Docker volumes (preserve all databases and n8n workflows)
+- `--keep-data`: Keep Docker volumes (preserve all databases)
 - `--keep-config`: Keep ~/.oview/config.yaml
 
 **Examples:**
@@ -480,10 +471,6 @@ postgres_user: oview
 postgres_password: oview_password_change_me
 postgres_container_name: oview-postgres
 postgres_volume: oview-postgres-data
-n8n_url: http://localhost:5678
-n8n_port: 5678
-n8n_container_name: oview-n8n
-n8n_volume: oview-n8n-data
 docker_network_name: oview-net
 ```
 
@@ -603,10 +590,9 @@ docker ps
 
 # Check container logs
 docker logs oview-postgres
-docker logs oview-n8n
 
 # Restart containers
-docker restart oview-postgres oview-n8n
+docker restart oview-postgres
 ```
 
 ### Port conflicts
@@ -648,11 +634,6 @@ oview up
 │  └────────────┘        │  ┌─────────────────────┐  │    │
 │         │              │  │  oview-postgres     │  │    │
 │         │              │  │  (pgvector)         │  │    │
-│         │              │  └─────────────────────┘  │    │
-│         │              │                           │    │
-│         │              │  ┌─────────────────────┐  │    │
-│         │              │  │  oview-n8n          │  │    │
-│         │              │  │  (workflow engine)  │  │    │
 │         │              │  └─────────────────────┘  │    │
 │         │              │                           │    │
 │         │              │   oview-net (network)     │    │
@@ -719,7 +700,6 @@ This allows Claude to:
 - [x] MCP integration with Claude Code
 - [ ] Incremental indexing (only changed files)
 - [ ] Trello integration for task management
-- [ ] Agent orchestration engine
 - [ ] Web UI for management
 - [ ] Multi-project dashboards
 - [ ] Docker Compose export for projects
@@ -734,4 +714,4 @@ MIT License - See LICENSE file for details.
 
 ## Version
 
-Current version: **0.1.0** (MVP)
+Current version: **0.2.0**

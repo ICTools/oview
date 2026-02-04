@@ -21,19 +21,19 @@ var uninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "Uninstall oview global infrastructure",
 	Long: `Removes all oview global infrastructure:
-- Stops and removes Docker containers (oview-postgres, oview-n8n)
+- Stops and removes Docker containers (oview-postgres)
 - Removes Docker volumes (data will be lost unless --keep-data is used)
 - Removes Docker network
 - Removes global configuration file
 
-WARNING: This will delete all project databases and n8n workflows!
+WARNING: This will delete all project databases!
 Use --keep-data to preserve volumes for later reinstall.`,
 	RunE: runUninstall,
 }
 
 func init() {
 	uninstallCmd.Flags().BoolVarP(&uninstallForce, "force", "f", false, "Skip confirmation prompt")
-	uninstallCmd.Flags().BoolVar(&uninstallKeepData, "keep-data", false, "Keep Docker volumes (databases and n8n data)")
+	uninstallCmd.Flags().BoolVar(&uninstallKeepData, "keep-data", false, "Keep Docker volumes (databases)")
 	uninstallCmd.Flags().BoolVar(&uninstallKeepConfig, "keep-config", false, "Keep ~/.oview/config.yaml")
 	rootCmd.AddCommand(uninstallCmd)
 }
@@ -52,12 +52,10 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 	// Show what will be removed
 	fmt.Println("The following will be removed:")
 	fmt.Printf("  🐳 Container: %s\n", globalConfig.PostgresContainerName)
-	fmt.Printf("  🐳 Container: %s\n", globalConfig.N8nContainerName)
 	fmt.Printf("  🌐 Network:   %s\n", globalConfig.DockerNetworkName)
 
 	if !uninstallKeepData {
 		fmt.Printf("  💾 Volume:    %s (⚠️  ALL PROJECT DATABASES)\n", globalConfig.PostgresVolume)
-		fmt.Printf("  💾 Volume:    %s (⚠️  ALL N8N WORKFLOWS)\n", globalConfig.N8nVolume)
 	} else {
 		fmt.Println("  ✓ Volumes will be kept (--keep-data)")
 	}
@@ -112,21 +110,6 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		fmt.Println("   ✓ Removed")
 	}
 
-	// Stop and remove n8n container
-	fmt.Printf("🛑 Stopping %s...\n", globalConfig.N8nContainerName)
-	if err := dockerClient.StopContainer(globalConfig.N8nContainerName); err != nil {
-		fmt.Printf("   ⚠️  Warning: %v\n", err)
-	} else {
-		fmt.Println("   ✓ Stopped")
-	}
-
-	fmt.Printf("🗑️  Removing %s...\n", globalConfig.N8nContainerName)
-	if err := dockerClient.RemoveContainer(globalConfig.N8nContainerName); err != nil {
-		fmt.Printf("   ⚠️  Warning: %v\n", err)
-	} else {
-		fmt.Println("   ✓ Removed")
-	}
-
 	// Remove volumes if requested
 	if !uninstallKeepData {
 		fmt.Println()
@@ -135,14 +118,6 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		// Remove Postgres volume
 		fmt.Printf("🗑️  Removing volume %s...\n", globalConfig.PostgresVolume)
 		if _, err := dockerClient.RunCommand("volume", "rm", globalConfig.PostgresVolume); err != nil {
-			fmt.Printf("   ⚠️  Warning: %v\n", err)
-		} else {
-			fmt.Println("   ✓ Removed")
-		}
-
-		// Remove n8n volume
-		fmt.Printf("🗑️  Removing volume %s...\n", globalConfig.N8nVolume)
-		if _, err := dockerClient.RunCommand("volume", "rm", globalConfig.N8nVolume); err != nil {
 			fmt.Printf("   ⚠️  Warning: %v\n", err)
 		} else {
 			fmt.Println("   ✓ Removed")
@@ -189,9 +164,9 @@ func runUninstall(cmd *cobra.Command, args []string) error {
 		fmt.Println("💡 Your data volumes were preserved.")
 		fmt.Println("   To reinstall with existing data: oview install")
 		fmt.Println("   To remove data volumes manually:")
-		fmt.Printf("     docker volume rm %s %s\n", globalConfig.PostgresVolume, globalConfig.N8nVolume)
+		fmt.Printf("     docker volume rm %s\n", globalConfig.PostgresVolume)
 	} else {
-		fmt.Println("⚠️  All project databases and n8n workflows have been deleted.")
+		fmt.Println("⚠️  All project databases have been deleted.")
 		fmt.Println("   To reinstall: oview install")
 	}
 
