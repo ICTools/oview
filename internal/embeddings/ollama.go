@@ -46,9 +46,11 @@ type OllamaEmbeddingResponse struct {
 
 // Embed generates an embedding vector for the given text
 func (g *OllamaGenerator) Embed(text string) ([]float32, error) {
-	// Truncate text if too long
-	if len(text) > 30000 {
-		text = text[:30000]
+	// Truncate text if too long (most embedding models support 512-8192 tokens)
+	// Using 8000 chars ≈ 2000 tokens to be safe
+	maxChars := 8000
+	if len(text) > maxChars {
+		text = text[:maxChars]
 	}
 
 	// Create request

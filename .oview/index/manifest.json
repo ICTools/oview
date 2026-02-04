@@ -2,40 +2,46 @@
   "files": {
     "README.md": {
       "path": "README.md",
-      "hash": "97cea5a237b8030f01e52b792d545ec9530e79497f0f627ee643f88b28f82f11",
+      "hash": "61ba1ff4784d7f0b7c190014697b3660db735f3795732e20c079fb8ac83d07a4",
       "chunks": 56,
-      "indexed_at": "2026-02-03T20:30:05.508418174+01:00"
+      "indexed_at": "2026-02-04T11:46:15.451894711+01:00"
     },
     "docs/HOW_IT_WORKS.md": {
       "path": "docs/HOW_IT_WORKS.md",
       "hash": "6a96a164e68b5cff633dc2b4f3047d7b588c41178929b4c899b296c6848eff03",
       "chunks": 48,
-      "indexed_at": "2026-02-03T20:30:06.808198884+01:00"
+      "indexed_at": "2026-02-04T11:46:16.227112609+01:00"
     },
     "docs/MCP_INTEGRATION.md": {
       "path": "docs/MCP_INTEGRATION.md",
       "hash": "2a3706467950a6173af383aa9655d79c84ce84e1caab26143a3de7c496b0f289",
       "chunks": 40,
-      "indexed_at": "2026-02-03T20:30:07.873790952+01:00"
+      "indexed_at": "2026-02-04T11:46:16.848864862+01:00"
+    },
+    "docs/MONITORING_AND_BENCHMARKING.md": {
+      "path": "docs/MONITORING_AND_BENCHMARKING.md",
+      "hash": "c5fc12dd0db6ac7f60424aea2e83ef9e82562bf0036c07349c2778190196e5a6",
+      "chunks": 35,
+      "indexed_at": "2026-02-04T11:46:17.440849224+01:00"
     },
     "docs/QUICK_START_MCP.md": {
       "path": "docs/QUICK_START_MCP.md",
       "hash": "d17b07f9598f66649a7fc89965b7ca84af71ce0e6de369da1b3790e8efaed54c",
       "chunks": 13,
-      "indexed_at": "2026-02-03T20:30:08.217778502+01:00"
+      "indexed_at": "2026-02-04T11:46:17.653504519+01:00"
     },
     "docs/SIMPLE_EXPLANATION.md": {
       "path": "docs/SIMPLE_EXPLANATION.md",
       "hash": "c3e790dbbd5f9d8a04d0fb856d37d2e76599de3014dcd5039428c626d2bbb1b1",
       "chunks": 24,
-      "indexed_at": "2026-02-03T20:30:08.871965501+01:00"
+      "indexed_at": "2026-02-04T11:46:18.041854004+01:00"
     },
     "docs/VERIFICATION_GUIDE.md": {
       "path": "docs/VERIFICATION_GUIDE.md",
       "hash": "3cd34c3ff072111137437b81792e555bc77c8cad0b9d8c261f0978752ab188cc",
       "chunks": 30,
-      "indexed_at": "2026-02-03T20:30:09.694070561+01:00"
+      "indexed_at": "2026-02-04T11:46:18.517290252+01:00"
     }
   },
-  "last_update": "2026-02-03T20:30:03.846735179+01:00"
+  "last_update": "2026-02-04T11:46:11.697412615+01:00"
 }

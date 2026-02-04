@@ -1,4 +1,4 @@
-project_id: 224c26562aa9f37c
+project_id: 11784d149fb118d1
 project_slug: oview
 stack:
     symfony: false
@@ -23,7 +23,7 @@ trello:
 database:
     name: oview_oview
     user: oview_oview
-    password: 9ef57b8a99d63b99130ff58e14ff542e
+    password: oview_dev
 embeddings:
     provider: ollama
     model: nomic-embed-text

@@ -178,14 +178,26 @@ func (c *Chunker) chunkTwig(path string, content string) ([]Chunk, error) {
 		blockName := content[match[2]:match[3]]
 		blockContent := content[startIdx:endIdx]
 
-		chunks = append(chunks, Chunk{
-			Path:      path,
-			Language:  "Twig",
-			Symbol:    blockName,
-			Component: getComponent(path),
-			Content:   strings.TrimSpace(blockContent),
-			Type:      "code",
-		})
+		// If block is too large, chunk it by size
+		if len(blockContent) > rule.MaxSize {
+			subChunks, err := c.chunkBySize(path, blockContent, rule.MaxSize, "Twig", "code")
+			if err != nil {
+				return nil, err
+			}
+			for j, sc := range subChunks {
+				sc.Symbol = fmt.Sprintf("%s#%d", blockName, j)
+				chunks = append(chunks, sc)
+			}
+		} else {
+			chunks = append(chunks, Chunk{
+				Path:      path,
+				Language:  "Twig",
+				Symbol:    blockName,
+				Component: getComponent(path),
+				Content:   strings.TrimSpace(blockContent),
+				Type:      "code",
+			})
+		}
 	}
 
 	return chunks, nil
@@ -217,14 +229,27 @@ func (c *Chunker) chunkYAML(path string, content string) ([]Chunk, error) {
 		if len(line) > 0 && line[0] != ' ' && line[0] != '\t' && strings.Contains(line, ":") {
 			// Save previous section
 			if currentSection.Len() > 0 {
-				chunks = append(chunks, Chunk{
-					Path:      path,
-					Language:  "YAML",
-					Symbol:    currentKey,
-					Component: getComponent(path),
-					Content:   strings.TrimSpace(currentSection.String()),
-					Type:      getFileType(path),
-				})
+				sectionContent := strings.TrimSpace(currentSection.String())
+				// If section is too large, chunk it by size
+				if len(sectionContent) > rule.MaxSize {
+					subChunks, err := c.chunkBySize(path, sectionContent, rule.MaxSize, "YAML", getFileType(path))
+					if err != nil {
+						return nil, err
+					}
+					for j, sc := range subChunks {
+						sc.Symbol = fmt.Sprintf("%s#%d", currentKey, j)
+						chunks = append(chunks, sc)
+					}
+				} else {
+					chunks = append(chunks, Chunk{
+						Path:      path,
+						Language:  "YAML",
+						Symbol:    currentKey,
+						Component: getComponent(path),
+						Content:   sectionContent,
+						Type:      getFileType(path),
+					})
+				}
 				currentSection.Reset()
 			}
 			currentKey = strings.TrimSpace(strings.Split(line, ":")[0])
@@ -234,14 +259,27 @@ func (c *Chunker) chunkYAML(path string, content string) ([]Chunk, error) {
 
 	// Save last section
 	if currentSection.Len() > 0 {
-		chunks = append(chunks, Chunk{
-			Path:      path,
-			Language:  "YAML",
-			Symbol:    currentKey,
-			Component: getComponent(path),
-			Content:   strings.TrimSpace(currentSection.String()),
-			Type:      getFileType(path),
-		})
+		sectionContent := strings.TrimSpace(currentSection.String())
+		// If section is too large, chunk it by size
+		if len(sectionContent) > rule.MaxSize {
+			subChunks, err := c.chunkBySize(path, sectionContent, rule.MaxSize, "YAML", getFileType(path))
+			if err != nil {
+				return nil, err
+			}
+			for j, sc := range subChunks {
+				sc.Symbol = fmt.Sprintf("%s#%d", currentKey, j)
+				chunks = append(chunks, sc)
+			}
+		} else {
+			chunks = append(chunks, Chunk{
+				Path:      path,
+				Language:  "YAML",
+				Symbol:    currentKey,
+				Component: getComponent(path),
+				Content:   sectionContent,
+				Type:      getFileType(path),
+			})
+		}
 	}
 
 	return chunks, nil
@@ -382,16 +420,29 @@ func (c *Chunker) chunkMarkdown(path string, content string) ([]Chunk, error) {
 		}
 
 		heading := content[match[4]:match[5]]
-		sectionContent := content[startIdx:endIdx]
+		sectionContent := strings.TrimSpace(content[startIdx:endIdx])
 
-		chunks = append(chunks, Chunk{
-			Path:      path,
-			Language:  "Markdown",
-			Symbol:    heading,
-			Component: "docs",
-			Content:   strings.TrimSpace(sectionContent),
-			Type:      "doc",
-		})
+		// If section is too large, chunk it by size
+		maxSize := 2000 // Default for markdown
+		if len(sectionContent) > maxSize {
+			subChunks, err := c.chunkBySize(path, sectionContent, maxSize, "Markdown", "doc")
+			if err != nil {
+				return nil, err
+			}
+			for j, sc := range subChunks {
+				sc.Symbol = fmt.Sprintf("%s#%d", heading, j)
+				chunks = append(chunks, sc)
+			}
+		} else {
+			chunks = append(chunks, Chunk{
+				Path:      path,
+				Language:  "Markdown",
+				Symbol:    heading,
+				Component: "docs",
+				Content:   sectionContent,
+				Type:      "doc",
+			})
+		}
 	}
 
 	return chunks, nil
