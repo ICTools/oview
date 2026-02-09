@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	openai "github.com/sashabaranov/go-openai"
+	"github.com/pkoukk/tiktoken-go"
 )
 
 // OpenAIGenerator generates embeddings using OpenAI API
@@ -32,11 +33,21 @@ func NewOpenAIGenerator(apiKey string, model string) *OpenAIGenerator {
 
 // Embed generates an embedding vector for the given text
 func (g *OpenAIGenerator) Embed(text string) ([]float32, error) {
-	// Truncate text if too long based on model's max context length
-	// Using ~4 characters per token as a conservative estimate
-	maxChars := g.MaxContextLength() * 4
-	if len(text) > maxChars {
-		text = text[:maxChars]
+	// Count actual tokens using tiktoken
+	tokenCount, err := g.CountTokens(text)
+	if err != nil {
+		// Fallback to character-based estimation if tokenization fails
+		maxChars := g.MaxContextLength() * 4
+		if len(text) > maxChars {
+			text = text[:maxChars]
+		}
+	} else {
+		// Use real token count with 95% safety factor
+		maxTokens := int(float64(g.MaxContextLength()) * 0.95)
+		if tokenCount > maxTokens {
+			// Truncate to token limit
+			text = g.truncateToTokenLimit(text, maxTokens)
+		}
 	}
 
 	// Create embedding request
@@ -82,7 +93,48 @@ func (g *OpenAIGenerator) MaxContextLength() int {
 	return 8191
 }
 
+// CountTokens counts the actual number of tokens using tiktoken
+func (g *OpenAIGenerator) CountTokens(text string) (int, error) {
+	// Get the appropriate encoding for the model
+	// cl100k_base is used by text-embedding-3-* and text-embedding-ada-002
+	encoding := "cl100k_base"
+
+	tke, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		return -1, fmt.Errorf("failed to get tiktoken encoding: %w", err)
+	}
+
+	tokens := tke.Encode(text, nil, nil)
+	return len(tokens), nil
+}
+
+// truncateToTokenLimit truncates text to fit within token limit
+func (g *OpenAIGenerator) truncateToTokenLimit(text string, maxTokens int) string {
+	encoding := "cl100k_base"
+	tke, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		// Fallback to simple truncation
+		return text[:min(len(text), maxTokens*4)]
+	}
+
+	tokens := tke.Encode(text, nil, nil)
+	if len(tokens) <= maxTokens {
+		return text
+	}
+
+	// Decode only the allowed tokens back to text
+	truncatedTokens := tokens[:maxTokens]
+	return tke.Decode(truncatedTokens)
+}
+
 // Name returns the name of the embedding model
 func (g *OpenAIGenerator) Name() string {
 	return fmt.Sprintf("OpenAI %s", g.model)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

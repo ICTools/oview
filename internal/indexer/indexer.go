@@ -64,11 +64,18 @@ func New(projectPath, projectID string, db *sql.DB, ragConfig *config.RAGConfig,
 		embeddingModel = embedder.Name()
 	}
 
+	// Create chunker with Tree-sitter support
+	// Pass embedding model's max context length for adaptive chunking
+	maxTokens := embedder.MaxContextLength()
+	chunker := NewChunkerWithTreeSitter(ragConfig, maxTokens)
+
+	fmt.Printf("📊 Indexer configured with Tree-sitter chunking (max tokens: %d)\n", maxTokens)
+
 	return &Indexer{
 		projectPath:    projectPath,
 		projectID:      projectID,
 		db:             db,
-		chunker:        NewChunker(ragConfig),
+		chunker:        chunker,
 		embedder:       embedder,
 		embeddingModel: embeddingModel,
 		ragConfig:      ragConfig,
@@ -121,7 +128,7 @@ func (idx *Indexer) Index() (*Stats, error) {
 
 		// Store chunks
 		storedCount := 0
-		maxContextChars := idx.embedder.MaxContextLength() * 4 // ~4 chars per token
+		maxContextChars := int(float64(idx.embedder.MaxContextLength()) * 0.5 * 1.5) // 1.5 chars/token with 50% safety
 		for _, chunk := range chunks {
 			// Warn if chunk is close to model's limit (>80% of max)
 			chunkSize := len(chunk.Content)

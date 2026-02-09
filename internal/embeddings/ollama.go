@@ -44,13 +44,34 @@ type OllamaEmbeddingResponse struct {
 	Embedding []float64 `json:"embedding"`
 }
 
+// OllamaTokenizeRequest is the request structure for Ollama tokenize API
+type OllamaTokenizeRequest struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+}
+
+// OllamaTokenizeResponse is the response structure from Ollama tokenize API
+type OllamaTokenizeResponse struct {
+	Tokens []int `json:"tokens"`
+}
+
 // Embed generates an embedding vector for the given text
 func (g *OllamaGenerator) Embed(text string) ([]float32, error) {
-	// Truncate text if too long based on model's max context length
-	// Using ~4 characters per token as a conservative estimate
-	maxChars := g.MaxContextLength() * 4
-	if len(text) > maxChars {
-		text = text[:maxChars]
+	// Count actual tokens using Ollama's tokenizer
+	tokenCount, err := g.CountTokens(text)
+	if err != nil {
+		// Fallback to character-based estimation if tokenization fails
+		maxChars := int(float64(g.MaxContextLength()) * 0.5 * 1.5)
+		if len(text) >= maxChars {
+			text = text[:maxChars]
+		}
+	} else {
+		// Use real token count with 90% safety factor (more precise)
+		maxTokens := int(float64(g.MaxContextLength()) * 0.9)
+		if tokenCount > maxTokens {
+			// Binary search to find the right length
+			text = g.truncateToTokenLimit(text, maxTokens)
+		}
 	}
 
 	// Create request
@@ -122,6 +143,70 @@ func (g *OllamaGenerator) MaxContextLength() int {
 	default:
 		return 2048 // Conservative default
 	}
+}
+
+// CountTokens counts the actual number of tokens using Ollama's tokenizer
+func (g *OllamaGenerator) CountTokens(text string) (int, error) {
+	// Create request
+	reqBody := OllamaTokenizeRequest{
+		Model:  g.model,
+		Prompt: text,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return -1, fmt.Errorf("failed to marshal tokenize request: %w", err)
+	}
+
+	// Make HTTP request to /api/tokenize
+	url := fmt.Sprintf("%s/api/tokenize", g.baseURL)
+	resp, err := g.client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return -1, fmt.Errorf("Ollama tokenize API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return -1, fmt.Errorf("Ollama tokenize API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var tokenizeResp OllamaTokenizeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenizeResp); err != nil {
+		return -1, fmt.Errorf("failed to decode tokenize response: %w", err)
+	}
+
+	return len(tokenizeResp.Tokens), nil
+}
+
+// truncateToTokenLimit truncates text to fit within token limit using binary search
+func (g *OllamaGenerator) truncateToTokenLimit(text string, maxTokens int) string {
+	if len(text) == 0 {
+		return text
+	}
+
+	// Binary search for the right character length
+	left, right := 0, len(text)
+	result := text
+
+	for left < right {
+		mid := (left + right + 1) / 2
+		tokens, err := g.CountTokens(text[:mid])
+		if err != nil {
+			// Fallback to simple truncation if tokenization fails
+			return text[:mid]
+		}
+
+		if tokens <= maxTokens {
+			result = text[:mid]
+			left = mid
+		} else {
+			right = mid - 1
+		}
+	}
+
+	return result
 }
 
 // Name returns the name of the embedding model

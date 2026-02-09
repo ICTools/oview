@@ -77,6 +77,12 @@ func (g *StubGenerator) MaxContextLength() int {
 	return 8192 // Arbitrary high limit for stub
 }
 
+// CountTokens estimates token count for stub generator (simple estimation)
+func (g *StubGenerator) CountTokens(text string) (int, error) {
+	// Simple estimation: 4 characters per token
+	return len(text) / 4, nil
+}
+
 // Name returns the name of the embedding model
 func (g *StubGenerator) Name() string {
 	return "stub-hash-based (PLACEHOLDER - NO SEMANTIC MEANING)"
