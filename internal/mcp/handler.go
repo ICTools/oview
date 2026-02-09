@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/yourusername/oview/internal/config"
 	"github.com/yourusername/oview/internal/embeddings"
+	"github.com/yourusername/oview/internal/query"
 )
 
 // ToolHandler handles MCP tool calls
@@ -41,21 +42,30 @@ func (h *ToolHandler) CallTool(name string, args map[string]interface{}) (interf
 	}
 }
 
-// handleSearch performs semantic search
+// handleSearch performs semantic search with advanced filters and strategies
 func (h *ToolHandler) handleSearch(args map[string]interface{}) (interface{}, error) {
 	// Parse arguments
-	query, ok := args["query"].(string)
-	if !ok || query == "" {
+	queryText, ok := args["query"].(string)
+	if !ok || queryText == "" {
 		return nil, fmt.Errorf("query is required")
 	}
 
-	limit := 5
-	if l, ok := args["limit"].(float64); ok {
-		limit = int(l)
-		if limit > 20 {
-			limit = 20
-		}
+	// Parse search filters
+	filters := query.ParseFiltersFromArgs(args)
+	if err := filters.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid filters: %w", err)
 	}
+
+	// Parse and apply strategy
+	strategyName := "default"
+	if s, ok := args["strategy"].(string); ok {
+		strategyName = s
+	}
+	strategy, err := query.ParseStrategy(strategyName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid strategy: %w", err)
+	}
+	query.ApplyStrategy(filters, strategy)
 
 	// Initialize embeddings generator if needed
 	if h.generator == nil {
@@ -65,7 +75,7 @@ func (h *ToolHandler) handleSearch(args map[string]interface{}) (interface{}, er
 	}
 
 	// Generate query embedding
-	queryEmbedding, err := h.generator.Embed(query)
+	queryEmbedding, err := h.generator.Embed(queryText)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate embedding: %w", err)
 	}
@@ -77,30 +87,86 @@ func (h *ToolHandler) handleSearch(args map[string]interface{}) (interface{}, er
 		}
 	}
 
-	// Search
-	results, err := h.searchSimilarChunks(queryEmbedding, limit)
+	// Search with filters
+	results, err := h.searchSimilarChunks(queryEmbedding, filters)
 	if err != nil {
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
 
-	// Format results
-	formattedResults := make([]map[string]interface{}, len(results))
+	// Convert to query.SearchResult for re-ranking
+	queryResults := make([]query.SearchResult, len(results))
 	for i, r := range results {
+		queryResults[i] = query.SearchResult{
+			ID:         r.ID,
+			Path:       r.Path,
+			Type:       r.Type,
+			Language:   r.Language,
+			Symbol:     r.Symbol,
+			Content:    r.Content,
+			Similarity: r.Similarity,
+		}
+	}
+
+	// Apply re-ranking
+	reranker := query.NewReranker(strategy)
+	queryResults = reranker.Rerank(queryResults)
+
+	// Filter by minimum similarity
+	queryResults = query.FilterByMinSimilarity(queryResults, filters.MinSimilarity)
+
+	// Limit results
+	if len(queryResults) > filters.Limit {
+		queryResults = queryResults[:filters.Limit]
+	}
+
+	// Format results
+	formattedResults := make([]map[string]interface{}, len(queryResults))
+	for i, r := range queryResults {
 		formattedResults[i] = map[string]interface{}{
 			"path":       r.Path,
 			"type":       r.Type,
 			"language":   r.Language,
 			"symbol":     r.Symbol,
+			"component":  r.Component,
 			"content":    r.Content,
 			"similarity": fmt.Sprintf("%.2f%%", r.Similarity*100),
+			"score":      fmt.Sprintf("%.2f%%", r.Score*100),
 		}
 	}
 
 	return map[string]interface{}{
-		"query":   query,
-		"count":   len(results),
-		"results": formattedResults,
+		"query":    queryText,
+		"strategy": string(strategy),
+		"filters":  formatFilters(filters),
+		"count":    len(formattedResults),
+		"results":  formattedResults,
 	}, nil
+}
+
+// formatFilters formats filters for output
+func formatFilters(filters *query.SearchFilters) map[string]interface{} {
+	result := make(map[string]interface{})
+
+	if len(filters.Languages) > 0 {
+		result["languages"] = filters.Languages
+	}
+	if len(filters.Types) > 0 {
+		result["types"] = filters.Types
+	}
+	if filters.PathPattern != "" {
+		result["path_pattern"] = filters.PathPattern
+	}
+	if len(filters.Components) > 0 {
+		result["components"] = filters.Components
+	}
+	if filters.SymbolPattern != "" {
+		result["symbol_pattern"] = filters.SymbolPattern
+	}
+	if filters.MinSimilarity > 0 {
+		result["min_similarity"] = filters.MinSimilarity
+	}
+
+	return result
 }
 
 // handleGetContext gets context for a file/symbol
@@ -259,26 +325,42 @@ type SearchResult struct {
 	Type       string
 	Language   string
 	Symbol     string
+	Component  string
 	Content    string
 	Similarity float64
 }
 
-// searchSimilarChunks searches for chunks similar to the query embedding
-func (h *ToolHandler) searchSimilarChunks(queryEmbedding []float32, limit int) ([]SearchResult, error) {
+// searchSimilarChunks searches for chunks similar to the query embedding with filters
+func (h *ToolHandler) searchSimilarChunks(queryEmbedding []float32, filters *query.SearchFilters) ([]SearchResult, error) {
 	// Convert embedding to PostgreSQL array format
 	embeddingStr := embeddingToString(queryEmbedding)
 
-	query := `
-		SELECT
-			id, path, type, COALESCE(language, ''), COALESCE(symbol, ''), content,
-			1 - (embedding <=> $1::vector) as similarity
-		FROM chunks
-		WHERE project_id = $2
-		ORDER BY embedding <=> $1::vector
-		LIMIT $3
-	`
+	// Build WHERE clause with filters
+	baseConditions := []string{"project_id = $1"}
+	whereClause, args := filters.BuildWhereClause(h.projectConfig.ProjectID, baseConditions)
 
-	rows, err := h.db.Query(query, embeddingStr, h.projectConfig.ProjectID, limit)
+	// Build complete query
+	// Note: We fetch more results than limit to allow for re-ranking
+	fetchLimit := filters.Limit * 3
+	if fetchLimit > 60 {
+		fetchLimit = 60
+	}
+
+	querySQL := fmt.Sprintf(`
+		SELECT
+			id, path, type, COALESCE(language, ''), COALESCE(symbol, ''),
+			COALESCE(component, ''), content,
+			1 - (embedding <=> $%d::vector) as similarity
+		FROM chunks
+		%s
+		ORDER BY embedding <=> $%d::vector
+		LIMIT %d
+	`, len(args)+1, whereClause, len(args)+1, fetchLimit)
+
+	// Append embedding at the end (it's referenced as $len(args)+1 in SQL)
+	allArgs := append(args, embeddingStr)
+
+	rows, err := h.db.Query(querySQL, allArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -287,7 +369,7 @@ func (h *ToolHandler) searchSimilarChunks(queryEmbedding []float32, limit int) (
 	var results []SearchResult
 	for rows.Next() {
 		var r SearchResult
-		err := rows.Scan(&r.ID, &r.Path, &r.Type, &r.Language, &r.Symbol, &r.Content, &r.Similarity)
+		err := rows.Scan(&r.ID, &r.Path, &r.Type, &r.Language, &r.Symbol, &r.Component, &r.Content, &r.Similarity)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}

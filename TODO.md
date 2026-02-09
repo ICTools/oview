@@ -57,7 +57,14 @@
 
 ---
 
-### 2. Corriger le bug SQL dans MCP search
+### 2. Corriger le bug SQL dans MCP search ✅ COMPLETED
+
+**Status:** ✅ Bug #1 fixed: Parameter prepend/append mismatch (handler.go:361)
+         ✅ Bug #2 fixed: paramIndex off-by-one error (filters.go:44-94)
+         ✅ All tests passing: search without filters, with language, type, path, symbol filters
+
+**Completion date:** 2026-02-09
+**Time spent:** ~1 hour
 
 **Prompt:**
 > Le serveur MCP échoue avec l'erreur "pq: got 3 parameters but the statement requires 2".
@@ -79,10 +86,10 @@
 - `internal/query/filters.go`
 
 **Acceptance Criteria:**
-- [ ] MCP search fonctionne sans erreur SQL
-- [ ] Tous les filtres (type, language, component, path) fonctionnent
-- [ ] Test avec différentes combinaisons de filtres
-- [ ] Logs MCP montrent requêtes réussies
+- [x] MCP search fonctionne sans erreur SQL
+- [x] Tous les filtres (type, language, component, path, symbol) fonctionnent
+- [x] Test avec différentes combinaisons de filtres (testé : language+type, path_pattern, symbol_pattern, min_similarity)
+- [x] Logs MCP montrent requêtes réussies
 
 **Estimated effort:** 2 heures
 
