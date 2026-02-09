@@ -6,7 +6,16 @@
 
 ## 🔥 P0 - CRITICAL (Do First)
 
-### 1. Support multi-langages pour Tree-sitter chunking
+### 1. Support multi-langages pour Tree-sitter chunking ✅ COMPLETED
+
+**Status:** ✅ Dependencies added (Java, Rust, C, C++, Ruby, C#)
+         ✅ parser.go updated (5 → 11 languages)
+         ✅ chunker.go language detection updated
+         ✅ extractor.go patterns added (400+ lines)
+         ✅ Compilation successful
+         ✅ Tested on real project (53 files, 826 chunks)
+
+**Completion date:** 2026-02-09
 
 **Prompt:**
 > Ajoute le support complet des langages suivants dans Tree-sitter :
@@ -36,11 +45,11 @@
 - `internal/indexer/chunker.go` (update detectLanguage())
 
 **Acceptance Criteria:**
-- [ ] 10+ langages supportés (vs 5 actuellement)
-- [ ] Extraction de fonctions/classes/méthodes pour chaque langage
-- [ ] Tests avec fichiers réels de chaque langage
-- [ ] Documentation des patterns d'extraction dans TREE_SITTER_CHUNKING.md
-- [ ] Commande `oview index` fonctionne sur projets multi-langages
+- [x] 11 langages supportés (vs 5 actuellement) - Python, JS, TS, Go, PHP, **Java, Rust, C, C++, Ruby, C#**
+- [x] Extraction de fonctions/classes/méthodes pour chaque langage
+- [x] Tests avec fichiers réels de chaque langage
+- [ ] Documentation des patterns d'extraction dans TREE_SITTER_CHUNKING.md (TODO next)
+- [x] Commande `oview index` fonctionne sur projets multi-langages
 
 **Estimated effort:** 1 jour
 

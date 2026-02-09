@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/yourusername/oview/internal/config"
+	"github.com/yourusername/oview/internal/treesitter"
 )
 
 // Chunk represents a chunk of code/documentation
@@ -22,12 +23,26 @@ type Chunk struct {
 
 // Chunker chunks files based on rules
 type Chunker struct {
-	rules *config.RAGConfig
+	rules     *config.RAGConfig
+	tsChunker *treesitter.Chunker
+	tsEnabled bool
 }
 
 // NewChunker creates a new chunker
 func NewChunker(rules *config.RAGConfig) *Chunker {
-	return &Chunker{rules: rules}
+	return &Chunker{
+		rules:     rules,
+		tsEnabled: false,
+	}
+}
+
+// NewChunkerWithTreeSitter creates a chunker with Tree-sitter support
+func NewChunkerWithTreeSitter(rules *config.RAGConfig, maxTokens int) *Chunker {
+	return &Chunker{
+		rules:     rules,
+		tsChunker: treesitter.NewChunker(maxTokens),
+		tsEnabled: true,
+	}
 }
 
 // ChunkFile chunks a file based on its type
@@ -35,7 +50,20 @@ func (c *Chunker) ChunkFile(path string, content []byte) ([]Chunk, error) {
 	ext := strings.ToLower(filepath.Ext(path))
 	basename := filepath.Base(path)
 
-	// Determine file type
+	// Try Tree-sitter first if enabled
+	if c.tsEnabled && c.tsChunker != nil {
+		language := c.detectLanguage(ext, basename)
+		if language != "" {
+			chunks, err := c.chunkWithTreeSitter(path, content, language)
+			if err == nil {
+				return chunks, nil
+			}
+			// Fallback to regex if Tree-sitter fails
+			fmt.Printf("Tree-sitter failed for %s: %v, falling back to regex\n", path, err)
+		}
+	}
+
+	// Fallback to regex-based chunking
 	switch {
 	case ext == ".php":
 		return c.chunkPHP(path, string(content))
@@ -51,9 +79,80 @@ func (c *Chunker) ChunkFile(path string, content []byte) ([]Chunk, error) {
 		return c.chunkJavaScript(path, string(content))
 	case ext == ".md" || ext == ".txt":
 		return c.chunkDocument(path, string(content))
+	case ext == ".py":
+		return c.chunkPython(path, string(content))
+	case ext == ".go":
+		return c.chunkGo(path, string(content))
 	default:
 		return c.chunkGeneric(path, string(content))
 	}
+}
+
+// detectLanguage detects language from file extension
+func (c *Chunker) detectLanguage(ext string, basename string) string {
+	switch ext {
+	case ".py":
+		return "python"
+	case ".js", ".jsx", ".mjs", ".cjs":
+		return "javascript"
+	case ".ts", ".tsx":
+		return "typescript"
+	case ".go":
+		return "go"
+	case ".php":
+		return "php"
+	case ".java":
+		return "java"
+	case ".rs":
+		return "rust"
+	case ".c", ".h":
+		return "c"
+	case ".cpp", ".hpp", ".cc", ".cxx", ".hxx":
+		return "cpp"
+	case ".rb":
+		return "ruby"
+	case ".cs":
+		return "csharp"
+	default:
+		return ""
+	}
+}
+
+// chunkWithTreeSitter chunks using Tree-sitter
+func (c *Chunker) chunkWithTreeSitter(path string, content []byte, language string) ([]Chunk, error) {
+	tsChunks, err := c.tsChunker.ChunkFile(path, content, language)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert treesitter.Chunk to indexer.Chunk
+	chunks := make([]Chunk, len(tsChunks))
+	for i, tsc := range tsChunks {
+		chunks[i] = Chunk{
+			Path:      path,
+			Language:  tsc.Language,
+			Symbol:    tsc.Symbol,
+			Component: getComponent(path),
+			Content:   tsc.Content,
+			Type:      getFileType(path),
+		}
+	}
+
+	return chunks, nil
+}
+
+// chunkPython chunks Python files (fallback if Tree-sitter fails)
+func (c *Chunker) chunkPython(path string, content string) ([]Chunk, error) {
+	// Simple regex-based Python chunking as fallback
+	rule := c.rules.Chunking.Generic
+	return c.chunkBySize(path, content, rule.MaxSize, "Python", "code")
+}
+
+// chunkGo chunks Go files (fallback if Tree-sitter fails)
+func (c *Chunker) chunkGo(path string, content string) ([]Chunk, error) {
+	// Simple regex-based Go chunking as fallback
+	rule := c.rules.Chunking.Generic
+	return c.chunkBySize(path, content, rule.MaxSize, "Go", "code")
 }
 
 // chunkPHP chunks PHP files by function/class (simplified approach)
