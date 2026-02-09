@@ -2,46 +2,322 @@
   "files": {
     "README.md": {
       "path": "README.md",
-      "hash": "61ba1ff4784d7f0b7c190014697b3660db735f3795732e20c079fb8ac83d07a4",
-      "chunks": 56,
-      "indexed_at": "2026-02-04T11:46:15.451894711+01:00"
+      "hash": "1f163103fc0c7d0c4ed36d5949bf35b75469ad997aa7ce7e38c95137f66dcd6d",
+      "chunks": 57,
+      "indexed_at": "2026-02-09T22:15:06.43822463+01:00"
+    },
+    "cmd/benchmark.go": {
+      "path": "cmd/benchmark.go",
+      "hash": "b7176209cc6ae33011d57d68ef91ab9c378853ca39961f885e4a3945d2a30784",
+      "chunks": 14,
+      "indexed_at": "2026-02-09T22:14:42.073718959+01:00"
+    },
+    "cmd/compare.go": {
+      "path": "cmd/compare.go",
+      "hash": "15c6c2f60752ff908081f5930ea7d2bc1dfaa221b8d0422c92a7fdbc7676f128",
+      "chunks": 10,
+      "indexed_at": "2026-02-09T22:14:42.394418211+01:00"
+    },
+    "cmd/down.go": {
+      "path": "cmd/down.go",
+      "hash": "32b7a9baa3c0103d2f4938336da6eb40141fa0fbe6b2cd7a39b417ca7334610e",
+      "chunks": 4,
+      "indexed_at": "2026-02-09T22:14:42.518651156+01:00"
+    },
+    "cmd/index.go": {
+      "path": "cmd/index.go",
+      "hash": "74789c320dd45da5814d0cd30322c54d03980fe527dd13b3f65617bcbe20e248",
+      "chunks": 2,
+      "indexed_at": "2026-02-09T22:14:42.688328485+01:00"
+    },
+    "cmd/init.go": {
+      "path": "cmd/init.go",
+      "hash": "d0a86309465e6cf4d69859883878fdd361799cddf828db7f5e4c10c3338fc188",
+      "chunks": 30,
+      "indexed_at": "2026-02-09T22:14:43.849148652+01:00"
+    },
+    "cmd/install.go": {
+      "path": "cmd/install.go",
+      "hash": "06b7d55688be4b29fa0461ffbcb79bbbe42e88f940c113d4e6bdd72ac93b0195",
+      "chunks": 2,
+      "indexed_at": "2026-02-09T22:14:43.94937793+01:00"
+    },
+    "cmd/mcp.go": {
+      "path": "cmd/mcp.go",
+      "hash": "8bfb7ab21716907da37d4c9616e7dea71d76e8d327791acb665ca1b5235b56ec",
+      "chunks": 4,
+      "indexed_at": "2026-02-09T22:14:44.066217096+01:00"
+    },
+    "cmd/monitor.go": {
+      "path": "cmd/monitor.go",
+      "hash": "6a60b880cf8a71e9545f87a577821601721ece6d0805b653b64f2d8dbac17ed6",
+      "chunks": 9,
+      "indexed_at": "2026-02-09T22:14:44.3431603+01:00"
+    },
+    "cmd/root.go": {
+      "path": "cmd/root.go",
+      "hash": "5ee4f98c5f583f611a3415ca03e89f3a553bc471da0a54fde818ea406e369c0d",
+      "chunks": 2,
+      "indexed_at": "2026-02-09T22:14:44.397537735+01:00"
+    },
+    "cmd/search.go": {
+      "path": "cmd/search.go",
+      "hash": "3766f749ccde60857b53b8e650325e1a3175d409a41a316592b1c9bbe1ad6a2f",
+      "chunks": 5,
+      "indexed_at": "2026-02-09T22:14:44.582532592+01:00"
+    },
+    "cmd/uninstall.go": {
+      "path": "cmd/uninstall.go",
+      "hash": "57c736b5c05ec22f2a1042d4133b343c9ab3a5e81b25cfb39e815affea0629d3",
+      "chunks": 2,
+      "indexed_at": "2026-02-09T22:14:44.713673407+01:00"
+    },
+    "cmd/up.go": {
+      "path": "cmd/up.go",
+      "hash": "effb6e4b455ed9a24608c5b9a5afd7cfbe44fb1b24e825b6a801817020c354a1",
+      "chunks": 3,
+      "indexed_at": "2026-02-09T22:14:44.855074318+01:00"
+    },
+    "cmd/version.go": {
+      "path": "cmd/version.go",
+      "hash": "1971b68ea6094788f4a19a6d047810a0c901d0e2585df55040ae60881192f305",
+      "chunks": 1,
+      "indexed_at": "2026-02-09T22:14:44.879324161+01:00"
+    },
+    "docs/CLAUDE_CODE_RAG_USAGE.md": {
+      "path": "docs/CLAUDE_CODE_RAG_USAGE.md",
+      "hash": "497ee56ba900ae68cdba8b43a13953bad4da98fd6782ad607501622a3e5eba88",
+      "chunks": 52,
+      "indexed_at": "2026-02-09T22:14:55.576155815+01:00"
     },
     "docs/HOW_IT_WORKS.md": {
       "path": "docs/HOW_IT_WORKS.md",
       "hash": "6a96a164e68b5cff633dc2b4f3047d7b588c41178929b4c899b296c6848eff03",
-      "chunks": 48,
-      "indexed_at": "2026-02-04T11:46:16.227112609+01:00"
+      "chunks": 49,
+      "indexed_at": "2026-02-09T22:14:57.041825965+01:00"
     },
     "docs/MCP_INTEGRATION.md": {
       "path": "docs/MCP_INTEGRATION.md",
       "hash": "2a3706467950a6173af383aa9655d79c84ce84e1caab26143a3de7c496b0f289",
       "chunks": 40,
-      "indexed_at": "2026-02-04T11:46:16.848864862+01:00"
+      "indexed_at": "2026-02-09T22:14:58.165821466+01:00"
+    },
+    "docs/MCP_LOGGING.md": {
+      "path": "docs/MCP_LOGGING.md",
+      "hash": "2d4f88606db002e46d84a87db943aac0a9e3a315ecf4cad0dacea328790b2500",
+      "chunks": 39,
+      "indexed_at": "2026-02-09T22:14:59.261533119+01:00"
     },
     "docs/MONITORING_AND_BENCHMARKING.md": {
       "path": "docs/MONITORING_AND_BENCHMARKING.md",
       "hash": "c5fc12dd0db6ac7f60424aea2e83ef9e82562bf0036c07349c2778190196e5a6",
       "chunks": 35,
-      "indexed_at": "2026-02-04T11:46:17.440849224+01:00"
+      "indexed_at": "2026-02-09T22:15:00.225800267+01:00"
     },
     "docs/QUICK_START_MCP.md": {
       "path": "docs/QUICK_START_MCP.md",
       "hash": "d17b07f9598f66649a7fc89965b7ca84af71ce0e6de369da1b3790e8efaed54c",
       "chunks": 13,
-      "indexed_at": "2026-02-04T11:46:17.653504519+01:00"
+      "indexed_at": "2026-02-09T22:15:00.579617552+01:00"
+    },
+    "docs/RAG_IMPROVEMENTS.md": {
+      "path": "docs/RAG_IMPROVEMENTS.md",
+      "hash": "4beaf105642a8aafa0089d174107f6132b383cc67a136ebfab219b97d2312409",
+      "chunks": 35,
+      "indexed_at": "2026-02-09T22:15:01.574248321+01:00"
     },
     "docs/SIMPLE_EXPLANATION.md": {
       "path": "docs/SIMPLE_EXPLANATION.md",
       "hash": "c3e790dbbd5f9d8a04d0fb856d37d2e76599de3014dcd5039428c626d2bbb1b1",
       "chunks": 24,
-      "indexed_at": "2026-02-04T11:46:18.041854004+01:00"
+      "indexed_at": "2026-02-09T22:15:02.258785948+01:00"
+    },
+    "docs/TREE_SITTER_CHUNKING.md": {
+      "path": "docs/TREE_SITTER_CHUNKING.md",
+      "hash": "8b2243bcfdfa6cd82e4bce1f1ed082054f013985bdd8fabe28494577643d5d58",
+      "chunks": 59,
+      "indexed_at": "2026-02-09T22:15:03.934438881+01:00"
     },
     "docs/VERIFICATION_GUIDE.md": {
       "path": "docs/VERIFICATION_GUIDE.md",
       "hash": "3cd34c3ff072111137437b81792e555bc77c8cad0b9d8c261f0978752ab188cc",
       "chunks": 30,
-      "indexed_at": "2026-02-04T11:46:18.517290252+01:00"
+      "indexed_at": "2026-02-09T22:15:04.793491947+01:00"
+    },
+    "internal/agents/generator.go": {
+      "path": "internal/agents/generator.go",
+      "hash": "ec380cbce6cf94c81ec07e09675f48de41a81656a1e43f8903d02a45f5be6c04",
+      "chunks": 12,
+      "indexed_at": "2026-02-09T22:14:45.240012307+01:00"
+    },
+    "internal/claude/ensure_claude_md.go": {
+      "path": "internal/claude/ensure_claude_md.go",
+      "hash": "2debec0d3704f2a2227a1ffe3847b6f87b63d0ec014b565869bf22018c01f31f",
+      "chunks": 5,
+      "indexed_at": "2026-02-09T22:14:45.393361947+01:00"
+    },
+    "internal/claude/mcp.go": {
+      "path": "internal/claude/mcp.go",
+      "hash": "719eb5ce87bce72e1cd547c89aaacdc331dc9c2390ab865704c9d0853d66f2ce",
+      "chunks": 4,
+      "indexed_at": "2026-02-09T22:14:45.511584287+01:00"
+    },
+    "internal/claude/rag_policy.go": {
+      "path": "internal/claude/rag_policy.go",
+      "hash": "f9c4eb3116ebf607dae600294b7930875b4bebc35568b90525beb461fcdabb25",
+      "chunks": 2,
+      "indexed_at": "2026-02-09T22:14:45.590470859+01:00"
+    },
+    "internal/claude/rag_policy_test.go": {
+      "path": "internal/claude/rag_policy_test.go",
+      "hash": "74dd646501f133415aeb8e9ecb85c72121b84668b40b18e667fd93ec8ec7d207",
+      "chunks": 3,
+      "indexed_at": "2026-02-09T22:14:45.715915261+01:00"
+    },
+    "internal/config/global.go": {
+      "path": "internal/config/global.go",
+      "hash": "d669617928669a767a35e04e0a08ad6cf8916a4e2aa1f1227c251ed13f84bd25",
+      "chunks": 9,
+      "indexed_at": "2026-02-09T22:14:45.957318231+01:00"
+    },
+    "internal/config/project.go": {
+      "path": "internal/config/project.go",
+      "hash": "8d4eae39be1a68853cab26c2d62ff8cb2224eed2008814eeec57a4b0b47870d0",
+      "chunks": 20,
+      "indexed_at": "2026-02-09T22:14:46.532817007+01:00"
+    },
+    "internal/database/client.go": {
+      "path": "internal/database/client.go",
+      "hash": "99c57e50db3709fb4ef20d6dd070efffbdeac487b986ce1f8f38c80117f876d0",
+      "chunks": 12,
+      "indexed_at": "2026-02-09T22:14:46.87759827+01:00"
+    },
+    "internal/database/schema.go": {
+      "path": "internal/database/schema.go",
+      "hash": "ead857d7dd90fc053b7354e379f9c27bee243c3220331eedaf65b6121cadd145",
+      "chunks": 1,
+      "indexed_at": "2026-02-09T22:14:46.918380537+01:00"
+    },
+    "internal/detector/detector.go": {
+      "path": "internal/detector/detector.go",
+      "hash": "49e75168de919e3e6ad6cae4420dc46af94717334e03ebe73c2b4427fb286d95",
+      "chunks": 28,
+      "indexed_at": "2026-02-09T22:14:47.765967955+01:00"
+    },
+    "internal/docker/client.go": {
+      "path": "internal/docker/client.go",
+      "hash": "bffbbae98190e5ffe1cbdb8411368f10a994511df03640c0cafde3757cb583b3",
+      "chunks": 12,
+      "indexed_at": "2026-02-09T22:14:48.113190628+01:00"
+    },
+    "internal/docker/container.go": {
+      "path": "internal/docker/container.go",
+      "hash": "1a6e4d9843011f18c64ce44bd1faefc686701c7f6e581519c5aba23ae1d0c24e",
+      "chunks": 5,
+      "indexed_at": "2026-02-09T22:14:48.266460245+01:00"
+    },
+    "internal/docker/ports.go": {
+      "path": "internal/docker/ports.go",
+      "hash": "a9d296bcb38850a37677e71a372566596c04928e2223551ea7a21130bdf78267",
+      "chunks": 3,
+      "indexed_at": "2026-02-09T22:14:48.34650875+01:00"
+    },
+    "internal/embeddings/interface.go": {
+      "path": "internal/embeddings/interface.go",
+      "hash": "436d876eb7d867dd8ba126b1bfbe74e8422e578e656ef577e82e3db101229371",
+      "chunks": 1,
+      "indexed_at": "2026-02-09T22:14:48.375205493+01:00"
+    },
+    "internal/embeddings/ollama.go": {
+      "path": "internal/embeddings/ollama.go",
+      "hash": "e9214d95894909cf7a444bc39cf2c2cfba1c227d84b2204ed1a87989caa8a00b",
+      "chunks": 12,
+      "indexed_at": "2026-02-09T22:14:48.735106899+01:00"
+    },
+    "internal/embeddings/openai.go": {
+      "path": "internal/embeddings/openai.go",
+      "hash": "30ec0f99447afd61e2e889422c6a31b0045a9f8381be7430d88b6e6bc0043f87",
+      "chunks": 9,
+      "indexed_at": "2026-02-09T22:14:48.995548167+01:00"
+    },
+    "internal/embeddings/stub.go": {
+      "path": "internal/embeddings/stub.go",
+      "hash": "9d185b867665fd138f7e2686a118c03b54d980c7e2d0bd0be46081bcffb75989",
+      "chunks": 7,
+      "indexed_at": "2026-02-09T22:14:49.196275624+01:00"
+    },
+    "internal/indexer/chunker.go": {
+      "path": "internal/indexer/chunker.go",
+      "hash": "c0e22474d0b4c847b5c923c4c04dda5be9943c1a265b7062b9f6c58bd1793897",
+      "chunks": 22,
+      "indexed_at": "2026-02-09T22:14:49.889756955+01:00"
+    },
+    "internal/indexer/indexer.go": {
+      "path": "internal/indexer/indexer.go",
+      "hash": "7dd4ffedaa1f3be1d87a3e366923e702157741efcd835928f44adc92b299629d",
+      "chunks": 14,
+      "indexed_at": "2026-02-09T22:14:50.322750138+01:00"
+    },
+    "internal/logger/logger.go": {
+      "path": "internal/logger/logger.go",
+      "hash": "23cbca5a7f3cbe4f53c012dbb092861eea291d03c4f7acb7b14210d9a4a1bd6e",
+      "chunks": 10,
+      "indexed_at": "2026-02-09T22:14:50.59137293+01:00"
+    },
+    "internal/mcp/handler.go": {
+      "path": "internal/mcp/handler.go",
+      "hash": "18edd928be05c3d706b210318f311a705db9210431d528c480b3da7bcb799339",
+      "chunks": 13,
+      "indexed_at": "2026-02-09T22:14:51.003551601+01:00"
+    },
+    "internal/mcp/server.go": {
+      "path": "internal/mcp/server.go",
+      "hash": "7c47d4534d4a8f95c3a821ccf6deedcc2796f521a5c2f2c12bbb7754d1207f8c",
+      "chunks": 13,
+      "indexed_at": "2026-02-09T22:14:51.470409053+01:00"
+    },
+    "internal/query/filters.go": {
+      "path": "internal/query/filters.go",
+      "hash": "0c3c5b77708ebadd16f6e34dea4b6469dee64a2ba3e19a7cf83753e56dbb8e74",
+      "chunks": 5,
+      "indexed_at": "2026-02-09T22:14:51.631186068+01:00"
+    },
+    "internal/query/reranker.go": {
+      "path": "internal/query/reranker.go",
+      "hash": "be8c48b0626028a95727a3983661b6370d310d2a55a508b301bf5d28bfd93466",
+      "chunks": 10,
+      "indexed_at": "2026-02-09T22:14:51.919615212+01:00"
+    },
+    "internal/query/strategies.go": {
+      "path": "internal/query/strategies.go",
+      "hash": "1c6fed97ddd46a58e9b78bbbe22da29c2bd7574bca001fe78f452ccb35166bb0",
+      "chunks": 6,
+      "indexed_at": "2026-02-09T22:14:52.087707387+01:00"
+    },
+    "internal/treesitter/chunker.go": {
+      "path": "internal/treesitter/chunker.go",
+      "hash": "65a702efc082664078bcba6ec328283b4a74fe6550269d2f57aba9565a63c9e5",
+      "chunks": 12,
+      "indexed_at": "2026-02-09T22:14:52.439936175+01:00"
+    },
+    "internal/treesitter/extractor.go": {
+      "path": "internal/treesitter/extractor.go",
+      "hash": "fb56e958d8ccc9b963a79a21ccaad86f1a7217161b40a9c12e09bde5014d6243",
+      "chunks": 47,
+      "indexed_at": "2026-02-09T22:14:53.831926799+01:00"
+    },
+    "internal/treesitter/parser.go": {
+      "path": "internal/treesitter/parser.go",
+      "hash": "1709f12d3edff97c447828f4433275fd8fa19389e87f9b257f65217a570e150b",
+      "chunks": 7,
+      "indexed_at": "2026-02-09T22:14:54.035161166+01:00"
+    },
+    "main.go": {
+      "path": "main.go",
+      "hash": "a1e635e30779a552cae8d86b240581eac56d6c8b92b5294cc9c813319a50f76e",
+      "chunks": 1,
+      "indexed_at": "2026-02-09T22:14:54.061951706+01:00"
     }
   },
-  "last_update": "2026-02-04T11:46:11.697412615+01:00"
+  "last_update": "2026-02-09T22:14:38.473339674+01:00"
 }

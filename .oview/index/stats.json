@@ -1,9 +1,9 @@
 {
-  "commit_sha": "32fcda0f99e59624218597aa1731d536654fba0d",
-  "files_indexed": 7,
-  "chunks_stored": 246,
-  "total_bytes": 68164,
-  "start_time": "2026-02-04T11:46:11.692604515+01:00",
-  "end_time": "2026-02-04T11:46:18.517303185+01:00",
-  "duration": "6.824698671s"
+  "commit_sha": "d13eb9db3fdb9f3add1c2b4ec7dd1e37e7b013b4",
+  "files_indexed": 53,
+  "chunks_stored": 826,
+  "total_bytes": 403670,
+  "start_time": "2026-02-09T22:14:38.443869356+01:00",
+  "end_time": "2026-02-09T22:15:06.438239933+01:00",
+  "duration": "27.99437056s"
 }

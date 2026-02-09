@@ -1,4 +1,4 @@
-project_id: 11784d149fb118d1
+project_id: 7575c8629fd74487
 project_slug: oview
 stack:
     symfony: false
@@ -10,16 +10,11 @@ stack:
         redis: false
         rabbitmq: false
         elasticsearch: false
-    languages: []
+    languages:
+        - Go
+        - Shell
     frameworks: []
 commands: {}
-trello:
-    list_ids:
-        backlog: ""
-        done: ""
-        in_progress: ""
-        review: ""
-        todo: ""
 database:
     name: oview_oview
     user: oview_oview

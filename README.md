@@ -373,14 +373,6 @@ commands:
     - npm run build
   start:
     - docker-compose up -d
-trello:
-  board_id: ""
-  list_ids:
-    backlog: ""
-    todo: ""
-    in_progress: ""
-    review: ""
-    done: ""
 database:
   name: oview_my-project
   user: oview_my-project
@@ -489,8 +481,8 @@ Each project gets role-specific Claude agent instruction files in `.oview/agents
 
 Each agent file includes:
 - Role mission and responsibilities
-- Expected inputs (Trello card, RAG context, etc.)
-- **Strict JSON output format** for orchestration
+- Expected inputs (task requirements, RAG context, etc.)
+- **Strict JSON output format** for structured responses
 - Stack-specific skills and best practices
 - Safety rules (no destructive commands, test before commit, etc.)
 
@@ -501,8 +493,6 @@ Each agent file includes:
   "actions": ["List of actions taken"],
   "files_changed": ["paths/to/changed/files"],
   "commands": ["commands that were run"],
-  "next_column": "target_column_name or null",
-  "trello_comment": "Comment to post on the Trello card",
   "blocking": false,
   "errors": []
 }
@@ -691,15 +681,21 @@ This allows Claude to:
    > Claude, search for error handling code in this project
    ```
 
+4. **Monitor logs (optional):**
+   ```bash
+   oview mcp logs
+   ```
+   View MCP server activity in real-time to debug issues or monitor performance.
+
 📚 **Full guide:** See [docs/MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md)
 🚀 **Quick start:** See [docs/QUICK_START_MCP.md](docs/QUICK_START_MCP.md)
+🔍 **Logging guide:** See [docs/MCP_LOGGING.md](docs/MCP_LOGGING.md)
 
 ## Roadmap
 
 - [x] Real embeddings integration (OpenAI, Ollama)
 - [x] MCP integration with Claude Code
 - [ ] Incremental indexing (only changed files)
-- [ ] Trello integration for task management
 - [ ] Web UI for management
 - [ ] Multi-project dashboards
 - [ ] Docker Compose export for projects

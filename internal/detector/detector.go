@@ -31,11 +31,14 @@ func (d *Detector) Detect() (*config.StackInfo, error) {
 		},
 	}
 
-	// Detect Symfony
+	// Detect all programming languages
+	languages := d.detectLanguages()
+	stack.Languages = languages
+
+	// Detect Symfony (PHP framework)
 	if d.hasSymfony() {
 		stack.Symfony = true
 		stack.Frameworks = append(stack.Frameworks, "Symfony")
-		stack.Languages = append(stack.Languages, "PHP")
 	}
 
 	// Detect Docker
@@ -51,18 +54,253 @@ func (d *Detector) Detect() (*config.StackInfo, error) {
 	// Detect Frontend
 	frontend := d.detectFrontend()
 	stack.Frontend = frontend
-	if frontend.Detected {
-		stack.Languages = append(stack.Languages, "JavaScript")
-	}
 
 	// Detect Infrastructure
 	stack.Infrastructure = d.detectInfrastructure()
 
-	// Deduplicate languages
+	// Deduplicate languages and frameworks
 	stack.Languages = unique(stack.Languages)
 	stack.Frameworks = unique(stack.Frameworks)
 
 	return stack, nil
+}
+
+// detectLanguages detects all programming languages in the project
+func (d *Detector) detectLanguages() []string {
+	languages := []string{}
+
+	// Go
+	if d.hasGo() {
+		languages = append(languages, "Go")
+	}
+
+	// Python
+	if d.hasPython() {
+		languages = append(languages, "Python")
+	}
+
+	// Ruby
+	if d.hasRuby() {
+		languages = append(languages, "Ruby")
+	}
+
+	// Rust
+	if d.hasRust() {
+		languages = append(languages, "Rust")
+	}
+
+	// Java
+	if d.hasJava() {
+		languages = append(languages, "Java")
+	}
+
+	// C/C++
+	if d.hasCpp() {
+		languages = append(languages, "C/C++")
+	}
+
+	// C#
+	if d.hasCSharp() {
+		languages = append(languages, "C#")
+	}
+
+	// PHP
+	if d.hasPHP() {
+		languages = append(languages, "PHP")
+	}
+
+	// JavaScript/TypeScript (check file extensions, not just package.json)
+	if d.hasJavaScriptFiles() {
+		languages = append(languages, "JavaScript")
+	}
+
+	// TypeScript
+	if d.hasTypeScriptFiles() {
+		languages = append(languages, "TypeScript")
+	}
+
+	// Shell scripts
+	if d.hasShell() {
+		languages = append(languages, "Shell")
+	}
+
+	return languages
+}
+
+// hasGo checks if the project uses Go
+func (d *Detector) hasGo() bool {
+	indicators := []string{"go.mod", "go.sum"}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".go")
+}
+
+// hasPython checks if the project uses Python
+func (d *Detector) hasPython() bool {
+	indicators := []string{
+		"requirements.txt",
+		"setup.py",
+		"pyproject.toml",
+		"Pipfile",
+		"poetry.lock",
+		"setup.cfg",
+	}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".py")
+}
+
+// hasRuby checks if the project uses Ruby
+func (d *Detector) hasRuby() bool {
+	indicators := []string{"Gemfile", "Gemfile.lock", ".ruby-version"}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".rb")
+}
+
+// hasRust checks if the project uses Rust
+func (d *Detector) hasRust() bool {
+	indicators := []string{"Cargo.toml", "Cargo.lock"}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".rs")
+}
+
+// hasJava checks if the project uses Java
+func (d *Detector) hasJava() bool {
+	indicators := []string{
+		"pom.xml",
+		"build.gradle",
+		"build.gradle.kts",
+		"settings.gradle",
+		"gradlew",
+	}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".java")
+}
+
+// hasCpp checks if the project uses C/C++
+func (d *Detector) hasCpp() bool {
+	indicators := []string{
+		"CMakeLists.txt",
+		"configure.ac",
+		"meson.build",
+	}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	// Check for C/C++ extensions
+	exts := []string{".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx"}
+	for _, ext := range exts {
+		if d.hasFilesWithExtension(ext) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasCSharp checks if the project uses C#
+func (d *Detector) hasCSharp() bool {
+	indicators := []string{
+		".csproj",
+		".sln",
+	}
+	for _, indicator := range indicators {
+		if d.hasFilesWithPattern(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".cs")
+}
+
+// hasPHP checks if the project uses PHP
+func (d *Detector) hasPHP() bool {
+	indicators := []string{"composer.json", "composer.lock"}
+	for _, indicator := range indicators {
+		if d.fileExists(indicator) {
+			return true
+		}
+	}
+	return d.hasFilesWithExtension(".php")
+}
+
+// hasJavaScriptFiles checks if the project has JavaScript files
+func (d *Detector) hasJavaScriptFiles() bool {
+	return d.hasFilesWithExtension(".js") || d.hasFilesWithExtension(".jsx") || d.fileExists("package.json")
+}
+
+// hasTypeScriptFiles checks if the project has TypeScript files
+func (d *Detector) hasTypeScriptFiles() bool {
+	return d.hasFilesWithExtension(".ts") || d.hasFilesWithExtension(".tsx") || d.fileExists("tsconfig.json")
+}
+
+// hasShell checks if the project has shell scripts
+func (d *Detector) hasShell() bool {
+	return d.hasFilesWithExtension(".sh") || d.hasFilesWithExtension(".bash")
+}
+
+// hasFilesWithExtension checks if any files with the given extension exist in the project
+func (d *Detector) hasFilesWithExtension(ext string) bool {
+	found := false
+	filepath.Walk(d.projectPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || found {
+			return nil
+		}
+		// Skip hidden directories and common ignore directories
+		if info.IsDir() {
+			name := info.Name()
+			if strings.HasPrefix(name, ".") || name == "vendor" || name == "node_modules" || name == "var" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(info.Name(), ext) {
+			found = true
+		}
+		return nil
+	})
+	return found
+}
+
+// hasFilesWithPattern checks if any files matching the pattern exist in the project
+func (d *Detector) hasFilesWithPattern(pattern string) bool {
+	found := false
+	filepath.Walk(d.projectPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || found {
+			return nil
+		}
+		// Skip hidden directories and common ignore directories
+		if info.IsDir() {
+			name := info.Name()
+			if strings.HasPrefix(name, ".") || name == "vendor" || name == "node_modules" || name == "var" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.Contains(info.Name(), pattern) {
+			found = true
+		}
+		return nil
+	})
+	return found
 }
 
 // hasSymfony checks if this is a Symfony project

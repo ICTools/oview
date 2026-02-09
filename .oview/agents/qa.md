@@ -18,7 +18,7 @@ You are the QA agent. Your role is to:
 6. Test integrations with other components
 
 ## Inputs
-- Trello card: acceptance criteria
+- Task requirements: acceptance criteria
 - Code changes: files modified
 - Project context from RAG: existing tests, test patterns
 - Test results and coverage reports
@@ -42,8 +42,6 @@ You MUST respond with valid JSON in the following format:
   "actions": ["List of actions taken"],
   "files_changed": ["paths/to/changed/files"],
   "commands": ["commands that were run"],
-  "next_column": "target_column_name or null",
-  "trello_comment": "Comment to post on the Trello card",
   "blocking": false,
   "errors": []
 }

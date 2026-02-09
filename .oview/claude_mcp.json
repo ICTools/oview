@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "oview": {
+      "command": "oview",
+      "args": [
+        "mcp"
+      ],
+      "cwd": "."
+    }
+  }
+}

@@ -36,31 +36,30 @@ chunking:
         overlap: 100
 indexing:
     include_paths:
-        - src/
-        - config/
-        - templates/
-        - assets/
-        - tests/
-        - Makefile
-        - docker-compose.yml
-        - compose.yaml
-        - README.md
+        - cmd/
+        - internal/
+        - pkg/
+        - main.go
         - docs/
+        - README.md
+        - Makefile
     exclude_paths:
-        - vendor/
-        - node_modules/
-        - var/
-        - public/bundles/
         - .git/
+        - .oview/
+        - vendor/
     extensions:
-        - .php
-        - .twig
+        - .ini
         - .yaml
+        - .toml
+        - .xml
+        - .conf
+        - .sum
         - .yml
-        - .js
-        - .ts
-        - .jsx
-        - .tsx
-        - .json
+        - .env
+        - .sh
+        - .bash
         - .md
         - .txt
+        - .json
+        - .go
+        - .mod

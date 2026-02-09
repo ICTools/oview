@@ -14,7 +14,6 @@ type ProjectConfig struct {
 	ProjectSlug string            `yaml:"project_slug"`
 	Stack       StackInfo         `yaml:"stack"`
 	Commands    CommandConfig     `yaml:"commands"`
-	Trello      TrelloConfig      `yaml:"trello"`
 	Database    DatabaseConfig    `yaml:"database,omitempty"`
 	Embeddings  EmbeddingsConfig  `yaml:"embeddings"`
 	LLM         LLMConfig         `yaml:"llm"`
@@ -70,14 +69,6 @@ type CommandConfig struct {
 	StaticAnalysis []string `yaml:"static_analysis,omitempty"`
 	Build         []string `yaml:"build,omitempty"`
 	Start         []string `yaml:"start,omitempty"`
-}
-
-// TrelloConfig contains Trello integration settings (placeholders)
-type TrelloConfig struct {
-	BoardID    string `yaml:"board_id,omitempty"`
-	ListIDs    map[string]string `yaml:"list_ids,omitempty"`
-	APIKey     string `yaml:"api_key,omitempty"`
-	APIToken   string `yaml:"api_token,omitempty"`
 }
 
 // DatabaseConfig contains database connection info
@@ -158,9 +149,9 @@ type IndexingRules struct {
 	Extensions   []string `yaml:"extensions"`
 }
 
-// DefaultRAGConfig returns a RAG config with sensible defaults
-func DefaultRAGConfig() *RAGConfig {
-	return &RAGConfig{
+// DefaultRAGConfig returns a RAG config with defaults based on detected stack
+func DefaultRAGConfig(stack *StackInfo) *RAGConfig {
+	config := &RAGConfig{
 		Chunking: ChunkingRules{
 			PHP: ChunkRule{
 				Strategy:  "function",
@@ -206,31 +197,177 @@ func DefaultRAGConfig() *RAGConfig {
 			},
 		},
 		Indexing: IndexingRules{
-			IncludePaths: []string{
-				"src/",
-				"config/",
-				"templates/",
-				"assets/",
-				"tests/",
-				"Makefile",
-				"docker-compose.yml",
-				"compose.yaml",
-				"README.md",
-				"docs/",
-			},
-			ExcludePaths: []string{
-				"vendor/",
-				"node_modules/",
-				"var/",
-				"public/bundles/",
-				".git/",
-			},
-			Extensions: []string{
-				".php", ".twig", ".yaml", ".yml", ".js", ".ts",
-				".jsx", ".tsx", ".json", ".md", ".txt",
-			},
+			IncludePaths: generateIncludePaths(stack),
+			ExcludePaths: generateExcludePaths(stack),
+			Extensions:   generateExtensions(stack),
 		},
 	}
+
+	return config
+}
+
+// generateIncludePaths generates include paths based on detected stack
+func generateIncludePaths(stack *StackInfo) []string {
+	paths := []string{}
+	pathsMap := make(map[string]bool) // To avoid duplicates
+
+	// Add paths based on detected languages
+	for _, lang := range stack.Languages {
+		switch lang {
+		case "Go":
+			paths = append(paths, "cmd/", "internal/", "pkg/", "main.go")
+		case "Python":
+			paths = append(paths, "src/", "tests/", "*.py")
+		case "Ruby":
+			paths = append(paths, "lib/", "app/", "spec/", "test/")
+		case "Rust":
+			paths = append(paths, "src/", "tests/", "benches/")
+		case "Java":
+			paths = append(paths, "src/", "test/")
+		case "C/C++":
+			paths = append(paths, "src/", "include/", "tests/")
+		case "C#":
+			paths = append(paths, "src/", "tests/")
+		case "PHP":
+			paths = append(paths, "src/", "tests/")
+			if stack.Symfony {
+				paths = append(paths, "config/", "templates/")
+			}
+		case "JavaScript", "TypeScript":
+			if stack.Frontend.Detected {
+				paths = append(paths, "src/", "assets/", "public/")
+			}
+		}
+	}
+
+	// Add common paths for all projects
+	commonPaths := []string{
+		"docs/",
+		"README.md",
+		"Makefile",
+	}
+	paths = append(paths, commonPaths...)
+
+	// Add Docker files if detected
+	if stack.Docker {
+		paths = append(paths, "docker-compose.yml", "compose.yaml", "Dockerfile")
+	}
+
+	// Deduplicate using map
+	for _, p := range paths {
+		pathsMap[p] = true
+	}
+
+	// Convert back to slice
+	result := []string{}
+	for p := range pathsMap {
+		result = append(result, p)
+	}
+
+	return result
+}
+
+// generateExcludePaths generates exclude paths based on detected stack
+func generateExcludePaths(stack *StackInfo) []string {
+	paths := []string{".git/", ".oview/"}
+
+	// Add language-specific excludes
+	for _, lang := range stack.Languages {
+		switch lang {
+		case "Go":
+			paths = append(paths, "vendor/")
+		case "Python":
+			paths = append(paths, "venv/", ".venv/", "__pycache__/", "*.pyc", ".pytest_cache/", ".tox/")
+		case "Ruby":
+			paths = append(paths, "vendor/", ".bundle/")
+		case "Rust":
+			paths = append(paths, "target/")
+		case "Java":
+			paths = append(paths, "target/", "build/", ".gradle/")
+		case "C#":
+			paths = append(paths, "bin/", "obj/")
+		case "PHP":
+			paths = append(paths, "vendor/", "var/")
+		case "JavaScript", "TypeScript":
+			paths = append(paths, "node_modules/", "dist/", "build/")
+		}
+	}
+
+	// Symfony-specific excludes
+	if stack.Symfony {
+		paths = append(paths, "public/bundles/", "var/cache/", "var/log/")
+	}
+
+	// Deduplicate
+	seen := make(map[string]bool)
+	result := []string{}
+	for _, p := range paths {
+		if !seen[p] {
+			seen[p] = true
+			result = append(result, p)
+		}
+	}
+
+	return result
+}
+
+// generateExtensions generates file extensions based on detected stack
+func generateExtensions(stack *StackInfo) []string {
+	exts := []string{}
+	extsMap := make(map[string]bool)
+
+	// Add extensions based on detected languages
+	for _, lang := range stack.Languages {
+		switch lang {
+		case "Go":
+			exts = append(exts, ".go", ".mod", ".sum")
+		case "Python":
+			exts = append(exts, ".py", ".pyi", ".pyx")
+		case "Ruby":
+			exts = append(exts, ".rb", ".rake", ".gemspec")
+		case "Rust":
+			exts = append(exts, ".rs", ".toml")
+		case "Java":
+			exts = append(exts, ".java", ".kt", ".gradle")
+		case "C/C++":
+			exts = append(exts, ".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hxx")
+		case "C#":
+			exts = append(exts, ".cs", ".csproj", ".sln")
+		case "PHP":
+			exts = append(exts, ".php", ".twig")
+		case "JavaScript":
+			exts = append(exts, ".js", ".jsx", ".mjs", ".cjs")
+		case "TypeScript":
+			exts = append(exts, ".ts", ".tsx")
+		case "Shell":
+			exts = append(exts, ".sh", ".bash")
+		}
+	}
+
+	// Add common extensions for all projects
+	commonExts := []string{
+		".md", ".txt", ".yaml", ".yml", ".json", ".toml",
+		".xml", ".ini", ".conf", ".env",
+	}
+	exts = append(exts, commonExts...)
+
+	// Add CSS/SCSS if frontend detected
+	if stack.Frontend.Detected {
+		exts = append(exts, ".css", ".scss", ".sass", ".less")
+	}
+
+	// Deduplicate
+	for _, ext := range exts {
+		extsMap[ext] = true
+	}
+
+	// Convert back to slice
+	result := []string{}
+	for ext := range extsMap {
+		result = append(result, ext)
+	}
+
+	return result
 }
 
 // SaveRAGConfig saves the RAG config to .oview/rag.yaml

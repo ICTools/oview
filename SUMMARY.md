@@ -38,8 +38,8 @@
   - qa.md (QA Engineer)
 - Each agent file includes:
   - Role-specific mission and responsibilities
-  - Expected inputs (Trello, RAG context)
-  - **Strict JSON output format** for orchestration
+  - Expected inputs (task requirements, RAG context)
+  - **Strict JSON output format** for structured responses
   - Stack-specific skills (Symfony, Docker, etc.)
   - Safety rules
 - Creates empty index manifest and stats files
@@ -249,19 +249,13 @@ All commands tested on test Symfony project:
    - Works well for MVP
    - Can be upgraded to AST-based later
 
-3. **Trello Integration:** Configuration structure present but not implemented
-   - Placeholders in project.yaml
-   - Ready for future implementation
-
-4. **No Query Interface:** No command to query the indexed data yet
+3. **No Query Interface:** No command to query the indexed data yet
    - Database is ready with proper indexes
    - Can be added as `oview query` command
 
 ### Future Enhancements (Post-MVP)
 - Real embeddings (OpenAI, local models, Ollama)
 - Incremental indexing (only changed files)
-- Trello API integration for task management
-- Agent orchestration engine
 - Query interface: `oview query "how does auth work?"`
 - Web UI for management
 - Multi-project dashboard

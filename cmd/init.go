@@ -18,6 +18,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yourusername/oview/internal/agents"
+	"github.com/yourusername/oview/internal/claude"
 	"github.com/yourusername/oview/internal/config"
 	"github.com/yourusername/oview/internal/detector"
 )
@@ -165,16 +166,6 @@ func runInit(cmd *cobra.Command, args []string) error {
 		ProjectSlug: slug,
 		Stack:       *stack,
 		Commands:    commands,
-		Trello: config.TrelloConfig{
-			BoardID: "",
-			ListIDs: map[string]string{
-				"backlog":        "",
-				"todo":           "",
-				"in_progress":    "",
-				"review":         "",
-				"done":           "",
-			},
-		},
 		Embeddings: embeddingsConfig,
 		LLM:        llmConfig,
 	}
@@ -219,7 +210,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	// Create RAG config
 	fmt.Println("📋 Creating RAG configuration...")
-	ragConfig := config.DefaultRAGConfig()
+	ragConfig := config.DefaultRAGConfig(stack)
 	if err := config.SaveRAGConfig(projectPath, ragConfig); err != nil {
 		return fmt.Errorf("failed to save RAG config: %w", err)
 	}
@@ -246,6 +237,101 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println("   ✓ Agent files generated")
 
+	// Claude Code integration
+	var claudeMdStatus claude.ClaudeMDStatus
+	var enableClaudeIntegration bool
+	var mcpAdded bool
+
+	if !nonInteractive {
+		fmt.Println()
+		fmt.Println("🎯 Claude Code Integration")
+		fmt.Println()
+		fmt.Println("Enable Claude Code integration with RAG-first MCP guidance?")
+		fmt.Println("This will:")
+		fmt.Println("  - Ensure CLAUDE.md exists (via claude /init or fallback)")
+		fmt.Println("  - Add oview RAG-first policy to CLAUDE.md")
+		fmt.Println("  - Create .oview/claude_mcp.json with MCP configuration")
+		fmt.Println()
+
+		reader := bufio.NewReader(os.Stdin)
+		choice := promptChoice(reader, "Enable Claude Code integration? [Y/n]", []string{"y", "n", "yes", "no"}, "y")
+		enableClaudeIntegration = choice == "y" || choice == "yes"
+	} else {
+		// Non-interactive default: enabled
+		enableClaudeIntegration = true
+	}
+
+	if enableClaudeIntegration {
+		fmt.Println()
+		fmt.Println("📝 Setting up Claude Code integration...")
+
+		// Check if user chose Claude Code as AI assistant
+		if llmConfig.Provider == "claude-code" {
+			// Verify CLAUDE.md exists - required for Claude Code integration
+			claudeMdPath := filepath.Join(projectPath, "CLAUDE.md")
+			if _, err := os.Stat(claudeMdPath); os.IsNotExist(err) {
+				fmt.Println()
+				fmt.Println("❌ CLAUDE.md not found!")
+				fmt.Println()
+				fmt.Println("Claude Code requires a CLAUDE.md file for proper integration.")
+				fmt.Println()
+				fmt.Println("Please run the following command first:")
+				fmt.Println()
+				fmt.Println("   claude /init")
+				fmt.Println()
+				fmt.Println("Then run 'oview init --force' again to complete the setup.")
+				fmt.Println()
+				return fmt.Errorf("CLAUDE.md required for Claude Code integration")
+			}
+		}
+
+		// 1. Ensure CLAUDE.md exists
+		status, err := claude.EnsureClaudeMd(projectPath)
+		if err != nil {
+			fmt.Printf("   ⚠️  Warning: Failed to ensure CLAUDE.md: %v\n", err)
+		} else {
+			claudeMdStatus = status
+			switch status {
+			case claude.StatusAlreadyExists:
+				fmt.Println("   ✓ CLAUDE.md already exists")
+			case claude.StatusCreatedViaCLI:
+				fmt.Println("   ✓ CLAUDE.md created via Claude Code")
+			case claude.StatusCreatedFallback:
+				fmt.Println("   ✓ CLAUDE.md created with minimal template")
+			}
+		}
+
+		// 2. Add/update oview RAG-first section
+		if err := claude.UpsertOviewRagFirstSection(projectPath); err != nil {
+			fmt.Printf("   ⚠️  Warning: Failed to update CLAUDE.md with RAG policy: %v\n", err)
+		} else {
+			fmt.Println("   ✓ oview RAG-first policy added to CLAUDE.md")
+		}
+
+		// 3. Create MCP snippet file
+		if err := claude.WriteClaudeMcpSnippet(projectPath); err != nil {
+			fmt.Printf("   ⚠️  Warning: Failed to create MCP snippet: %v\n", err)
+		} else {
+			fmt.Println("   ✓ MCP configuration snippet created")
+		}
+
+		// 4. Prompt to add to ~/.claude/mcp_servers.json
+		if !nonInteractive {
+			fmt.Println()
+			reader := bufio.NewReader(os.Stdin)
+			choice := promptChoice(reader, "Add oview MCP server to ~/.claude/mcp_servers.json automatically? [Y/n]", []string{"y", "n", "yes", "no"}, "y")
+			if choice == "y" || choice == "yes" {
+				if err := claude.AddToClaudeMcpConfig(projectPath); err != nil {
+					fmt.Printf("   ⚠️  Warning: Failed to add to MCP config: %v\n", err)
+					fmt.Println("   You can add it manually from .oview/claude_mcp.json")
+				} else {
+					fmt.Println("   ✓ MCP configuration added to ~/.claude/mcp_servers.json")
+					mcpAdded = true
+				}
+			}
+		}
+	}
+
 	// Summary
 	fmt.Println()
 	fmt.Println("✅ Initialization complete!")
@@ -255,12 +341,39 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println("  .oview/rag.yaml         - RAG indexing rules")
 	fmt.Println("  .oview/agents/          - Claude agent instructions")
 	fmt.Println("  .oview/index/           - Index metadata (empty)")
+
+	if enableClaudeIntegration {
+		fmt.Println()
+		fmt.Println("Claude Code Integration:")
+		switch claudeMdStatus {
+		case claude.StatusAlreadyExists:
+			fmt.Println("  CLAUDE.md               - Already exists (updated with RAG policy)")
+		case claude.StatusCreatedViaCLI:
+			fmt.Println("  CLAUDE.md               - Created via Claude Code (enriched)")
+		case claude.StatusCreatedFallback:
+			fmt.Println("  CLAUDE.md               - Created with minimal template")
+		}
+		fmt.Println("  .oview/claude_mcp.json  - MCP configuration snippet")
+
+		if mcpAdded {
+			fmt.Println("  ~/.claude/mcp_servers.json - MCP server configuration updated")
+			fmt.Println()
+			fmt.Println("To complete Claude Code integration:")
+			fmt.Println("  1. Restart Claude Code to load the MCP server")
+		} else {
+			fmt.Println()
+			fmt.Println("To complete Claude Code integration:")
+			fmt.Println("  1. Copy MCP config from .oview/claude_mcp.json")
+			fmt.Println("  2. Add to your ~/.claude/mcp_servers.json")
+			fmt.Println("  3. Restart Claude Code to load the MCP server")
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Review and customize .oview/project.yaml if needed")
-	fmt.Println("  2. Add Trello credentials if using Trello integration")
-	fmt.Println("  3. Run: oview up")
-	fmt.Println("  4. Run: oview index")
+	fmt.Println("  2. Run: oview up")
+	fmt.Println("  3. Run: oview index")
 
 	return nil
 }
@@ -351,51 +464,33 @@ func promptEmbeddingsConfig() config.EmbeddingsConfig {
 	return embeddingsConfig
 }
 
-// LLMModelOption represents an LLM model choice
-type LLMModelOption struct {
+// AIAssistantOption represents an AI assistant choice
+type AIAssistantOption struct {
 	Name        string
 	Provider    string
 	Description string
 	BaseURL     string
 }
 
-// promptLLMConfig prompts user for LLM configuration
+// promptLLMConfig prompts user for AI assistant configuration
 func promptLLMConfig() config.LLMConfig {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Println()
-	fmt.Println("🤖 Configuration du LLM (agent AI)")
+	fmt.Println("🤖 AI Assistant Configuration")
 	fmt.Println()
-	fmt.Println("Le LLM sera utilisé par les agents pour analyser et modifier le code.")
+	fmt.Println("Choose the AI assistant for code analysis and generation.")
 	fmt.Println()
 
-	// All LLM models in one flat list, Claude models first
-	models := []LLMModelOption{
-		// Claude models first
-		{"claude-sonnet-4.5", "claude-code", "Claude Code CLI - Intégré (recommandé)", ""},
-		{"claude-sonnet-4.5", "claude-api", "Claude API - Équilibré, nécessite clé API", ""},
-		{"claude-opus-4.5", "claude-api", "Claude API - Maximum qualité, nécessite clé API", ""},
-		{"claude-haiku-4", "claude-api", "Claude API - Rapide et économique, nécessite clé API", ""},
-		// OpenAI models
-		{"gpt-4o", "openai", "OpenAI - Multimodal, nécessite clé API", ""},
-		{"gpt-4-turbo", "openai", "OpenAI - Rapide, 128K tokens, nécessite clé API", ""},
-		{"gpt-4", "openai", "OpenAI - Stable, nécessite clé API", ""},
-		// Ollama models
-		{"llama3.1:70b", "ollama", "Ollama - Haute qualité, local", "http://localhost:11434"},
-		{"llama3.1:8b", "ollama", "Ollama - Rapide, local", "http://localhost:11434"},
-		{"codellama:34b", "ollama", "Ollama - Optimisé code, local", "http://localhost:11434"},
-		{"deepseek-coder", "ollama", "Ollama - Spécialisé code, local", "http://localhost:11434"},
+	// Simple list: Claude Code (recommended) and Claude API
+	models := []AIAssistantOption{
+		{"claude-sonnet-4.5", "claude-code", "Claude Code CLI - Integrated (recommended)", ""},
+		{"claude-sonnet-4.5", "claude-api", "Claude API - Requires API key", ""},
 	}
 
-	fmt.Println("Modèles disponibles:")
+	fmt.Println("Available assistants:")
 	for i, m := range models {
-		displayName := m.Name
-		if m.Name == "claude-sonnet-4.5" && m.Provider == "claude-api" {
-			displayName = "claude-sonnet-4.5 (API)"
-		} else if m.Name == "claude-sonnet-4.5" && m.Provider == "claude-code" {
-			displayName = "claude-sonnet-4.5 (CLI)"
-		}
-		fmt.Printf("  %d. %-28s - %s\n", i+1, displayName, m.Description)
+		fmt.Printf("  %d. %-30s - %s\n", i+1, m.Provider, m.Description)
 	}
 	fmt.Println()
 
@@ -405,10 +500,10 @@ func promptLLMConfig() config.LLMConfig {
 		modelNames[i] = m.Name
 	}
 
-	choiceInput := promptChoice(reader, "Choisir modèle [1-11]", modelNames, "1")
+	choiceInput := promptChoice(reader, "Choose assistant [1-2]", modelNames, "1")
 
 	// Find selected model - need to handle index-based selection
-	var selected LLMModelOption
+	var selected AIAssistantOption
 	if choiceNum, err := strconv.Atoi(choiceInput); err == nil && choiceNum >= 1 && choiceNum <= len(models) {
 		selected = models[choiceNum-1]
 	} else {
@@ -424,15 +519,9 @@ func promptLLMConfig() config.LLMConfig {
 		}
 	}
 
-	// Customize base URL for Ollama if needed
-	if selected.Provider == "ollama" {
-		fmt.Println()
-		selected.BaseURL = promptString(reader, "Base URL Ollama", selected.BaseURL)
-	}
-
 	// Validate connection
 	fmt.Println()
-	fmt.Println("🔌 Validation de la connexion...")
+	fmt.Println("🔌 Connection validation...")
 
 	llmConfig := config.LLMConfig{
 		Provider: selected.Provider,
