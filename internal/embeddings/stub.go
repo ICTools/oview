@@ -1,6 +1,7 @@
 package embeddings
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"math"
@@ -31,7 +32,8 @@ func NewStubGenerator(dimension int) *StubGenerator {
 //
 // WARNING: This does NOT capture semantic meaning!
 // It only provides consistent vectors for identical text.
-func (g *StubGenerator) Embed(text string) ([]float32, error) {
+// Context is accepted for interface consistency but not used (synchronous operation)
+func (g *StubGenerator) Embed(ctx context.Context, text string) ([]float32, error) {
 	// Hash the text to get deterministic bytes
 	hash := sha256.Sum256([]byte(text))
 
@@ -78,7 +80,8 @@ func (g *StubGenerator) MaxContextLength() int {
 }
 
 // CountTokens estimates token count for stub generator (simple estimation)
-func (g *StubGenerator) CountTokens(text string) (int, error) {
+// Context is accepted for interface consistency but not used (synchronous operation)
+func (g *StubGenerator) CountTokens(ctx context.Context, text string) (int, error) {
 	// Simple estimation: 4 characters per token
 	return len(text) / 4, nil
 }

@@ -95,14 +95,16 @@
 
 ---
 
-### 3. Ajouter tests unitaires critiques ⏳ IN PROGRESS
+### 3. Ajouter tests unitaires critiques ✅ COMPLETED
 
 **Status:** ✅ Embeddings tests (17 functions)
          ✅ Indexer tests (20 functions)
          ✅ MCP tests (29 functions: handler 15 + server 14)
          ✅ Query tests (36 functions: filters 25 + strategies 11)
          Total: 102 test functions created
-         🔄 Optional: treesitter tests (lower priority)
+
+**Completion date:** 2026-02-10
+**Time spent:** ~2 hours
 
 **Prompt:**
 > Actuellement il n'y a qu'1 seul test sur 28 fichiers Go (3.6% coverage).

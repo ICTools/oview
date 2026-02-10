@@ -1,6 +1,7 @@
 package embeddings
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,7 +55,7 @@ func TestOllamaGenerator_CountTokens(t *testing.T) {
 			gen := NewOllamaGenerator(server.URL, "nomic-embed-text")
 
 			// Test
-			tokens, err := gen.CountTokens(tt.text)
+			tokens, err := gen.CountTokens(context.Background(), tt.text)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -109,7 +110,7 @@ func TestOllamaGenerator_Embed(t *testing.T) {
 
 			gen := NewOllamaGenerator(server.URL, "nomic-embed-text")
 
-			embedding, err := gen.Embed(tt.text)
+			embedding, err := gen.Embed(context.Background(), tt.text)
 
 			if tt.expectError {
 				assert.Error(t, err)

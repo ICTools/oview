@@ -1,6 +1,7 @@
 package embeddings
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func TestOpenAIGenerator_CountTokens(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tokens, err := gen.CountTokens(tt.text)
+			tokens, err := gen.CountTokens(context.Background(), tt.text)
 			assert.NoError(t, err)
 			assert.GreaterOrEqual(t, tokens, tt.minTokens)
 			assert.LessOrEqual(t, tokens, tt.maxTokens)

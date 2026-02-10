@@ -1,6 +1,7 @@
 package embeddings
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,8 +21,8 @@ func TestStubGenerator_Embed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			embedding1, err1 := gen.Embed(tt.text)
-			embedding2, err2 := gen.Embed(tt.text)
+			embedding1, err1 := gen.Embed(context.Background(), tt.text)
+			embedding2, err2 := gen.Embed(context.Background(), tt.text)
 
 			// Should not error
 			assert.NoError(t, err1)
@@ -47,8 +48,8 @@ func TestStubGenerator_Embed(t *testing.T) {
 func TestStubGenerator_Embed_DifferentTexts(t *testing.T) {
 	gen := NewStubGenerator(1536)
 
-	emb1, _ := gen.Embed("Hello")
-	emb2, _ := gen.Embed("World")
+	emb1, _ := gen.Embed(context.Background(), "Hello")
+	emb2, _ := gen.Embed(context.Background(), "World")
 
 	// Different texts should produce different embeddings
 	assert.NotEqual(t, emb1, emb2)
@@ -62,7 +63,7 @@ func TestStubGenerator_Dimension(t *testing.T) {
 			gen := NewStubGenerator(dim)
 			assert.Equal(t, dim, gen.Dimension())
 
-			embedding, _ := gen.Embed("test")
+			embedding, _ := gen.Embed(context.Background(), "test")
 			assert.Equal(t, dim, len(embedding))
 		})
 	}
@@ -89,7 +90,7 @@ func TestStubGenerator_CountTokens(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.text, func(t *testing.T) {
-			tokens, err := gen.CountTokens(tt.text)
+			tokens, err := gen.CountTokens(context.Background(), tt.text)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedTokens, tokens)
 		})

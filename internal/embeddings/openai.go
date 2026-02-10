@@ -3,6 +3,7 @@ package embeddings
 import (
 	"context"
 	"fmt"
+	"time"
 
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/pkoukk/tiktoken-go"
@@ -32,9 +33,16 @@ func NewOpenAIGenerator(apiKey string, model string) *OpenAIGenerator {
 }
 
 // Embed generates an embedding vector for the given text
-func (g *OpenAIGenerator) Embed(text string) ([]float32, error) {
+func (g *OpenAIGenerator) Embed(ctx context.Context, text string) ([]float32, error) {
+	// Set default timeout if context doesn't have one
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+	}
+
 	// Count actual tokens using tiktoken
-	tokenCount, err := g.CountTokens(text)
+	tokenCount, err := g.CountTokens(ctx, text)
 	if err != nil {
 		// Fallback to character-based estimation if tokenization fails
 		maxChars := g.MaxContextLength() * 4
@@ -46,13 +54,13 @@ func (g *OpenAIGenerator) Embed(text string) ([]float32, error) {
 		maxTokens := int(float64(g.MaxContextLength()) * 0.95)
 		if tokenCount > maxTokens {
 			// Truncate to token limit
-			text = g.truncateToTokenLimit(text, maxTokens)
+			text = g.truncateToTokenLimit(ctx, text, maxTokens)
 		}
 	}
 
-	// Create embedding request
+	// Create embedding request with context
 	resp, err := g.client.CreateEmbeddings(
-		context.Background(),
+		ctx,
 		openai.EmbeddingRequestStrings{
 			Input: []string{text},
 			Model: g.model,
@@ -94,7 +102,8 @@ func (g *OpenAIGenerator) MaxContextLength() int {
 }
 
 // CountTokens counts the actual number of tokens using tiktoken
-func (g *OpenAIGenerator) CountTokens(text string) (int, error) {
+// Note: tiktoken is synchronous and doesn't use context, but we accept it for interface consistency
+func (g *OpenAIGenerator) CountTokens(ctx context.Context, text string) (int, error) {
 	// Get the appropriate encoding for the model
 	// cl100k_base is used by text-embedding-3-* and text-embedding-ada-002
 	encoding := "cl100k_base"
@@ -109,7 +118,7 @@ func (g *OpenAIGenerator) CountTokens(text string) (int, error) {
 }
 
 // truncateToTokenLimit truncates text to fit within token limit
-func (g *OpenAIGenerator) truncateToTokenLimit(text string, maxTokens int) string {
+func (g *OpenAIGenerator) truncateToTokenLimit(ctx context.Context, text string, maxTokens int) string {
 	encoding := "cl100k_base"
 	tke, err := tiktoken.GetEncoding(encoding)
 	if err != nil {
