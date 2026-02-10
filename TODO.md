@@ -158,7 +158,16 @@
 
 ## 🔴 P1 - HIGH (Next Sprint)
 
-### 4. Ajouter gestion de contexte Go
+### 4. Ajouter gestion de contexte Go ✅ COMPLETED
+
+**Status:** ✅ Interface embeddings mise à jour
+         ✅ Context propagé dans indexer (Index, storeChunk)
+         ✅ Context propagé dans MCP (CallTool, handlers)
+         ✅ CTRL+C handling avec signal.Notify
+         ✅ Tous les tests mis à jour (102 tests passent)
+
+**Completion date:** 2026-02-10
+**Time spent:** ~1.5 hours
 
 **Prompt:**
 > L'application n'utilise pas le système de contexte Go, ce qui empêche :
