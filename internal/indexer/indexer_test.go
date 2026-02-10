@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,7 +83,7 @@ func TestIndexer_storeChunk(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = indexer.storeChunk(chunk, "abc123")
+	err = indexer.storeChunk(context.Background(), chunk, "abc123")
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -123,7 +124,7 @@ func TestIndexer_storeChunk_WithNullFields(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = indexer.storeChunk(chunk, "")
+	err = indexer.storeChunk(context.Background(), chunk, "")
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -396,7 +397,7 @@ func TestIndexer_Index_FullWorkflow(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	stats, err := indexer.Index()
+	stats, err := indexer.Index(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, stats)
 	assert.Equal(t, 1, stats.FilesIndexed)

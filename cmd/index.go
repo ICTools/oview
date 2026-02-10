@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/yourusername/oview/internal/config"
@@ -141,8 +144,21 @@ func runIndex(cmd *cobra.Command, args []string) error {
 
 	idx := indexer.New(projectPath, projectConfig.ProjectID, db, ragConfig, embedder, embConfig.Model)
 
-	// Run indexing
-	stats, err := idx.Index()
+	// Setup context with cancellation for CTRL+C
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle CTRL+C gracefully
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		fmt.Println("\n⚠️  Cancelling indexing... (press CTRL+C again to force quit)")
+		cancel()
+	}()
+
+	// Run indexing with context
+	stats, err := idx.Index(ctx)
 	if err != nil {
 		return fmt.Errorf("indexing failed: %w", err)
 	}

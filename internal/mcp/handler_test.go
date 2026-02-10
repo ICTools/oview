@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"context"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -31,7 +32,7 @@ func TestToolHandler_CallTool_UnknownTool(t *testing.T) {
 	globalConfig := &config.GlobalConfig{}
 	handler := NewToolHandler(projectConfig, globalConfig)
 
-	result, err := handler.CallTool("unknown_tool", map[string]interface{}{})
+	result, err := handler.CallTool(context.Background(), "unknown_tool", map[string]interface{}{})
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -62,7 +63,7 @@ func TestToolHandler_handleProjectInfo(t *testing.T) {
 	globalConfig := &config.GlobalConfig{}
 	handler := NewToolHandler(projectConfig, globalConfig)
 
-	result, err := handler.handleProjectInfo(map[string]interface{}{})
+	result, err := handler.handleProjectInfo(context.Background(), map[string]interface{}{})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -119,7 +120,7 @@ func TestToolHandler_handleGetContext(t *testing.T) {
 		"limit": float64(3),
 	}
 
-	result, err := handler.handleGetContext(args)
+	result, err := handler.handleGetContext(context.Background(), args)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -164,7 +165,7 @@ func TestToolHandler_handleGetContext_WithSymbol(t *testing.T) {
 		"limit":  float64(3),
 	}
 
-	result, err := handler.handleGetContext(args)
+	result, err := handler.handleGetContext(context.Background(), args)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -184,7 +185,7 @@ func TestToolHandler_handleGetContext_MissingPath(t *testing.T) {
 
 	args := map[string]interface{}{}
 
-	result, err := handler.handleGetContext(args)
+	result, err := handler.handleGetContext(context.Background(), args)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -198,7 +199,7 @@ func TestToolHandler_handleSearch_MissingQuery(t *testing.T) {
 
 	args := map[string]interface{}{}
 
-	result, err := handler.handleSearch(args)
+	result, err := handler.handleSearch(context.Background(), args)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -236,7 +237,7 @@ func TestToolHandler_handleSearch_WithFilters(t *testing.T) {
 		"limit":    float64(5),
 	}
 
-	result, err := handler.handleSearch(args)
+	result, err := handler.handleSearch(context.Background(), args)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)

@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -303,9 +304,11 @@ func (s *Server) handleToolsCall(req *MCPRequest) *MCPResponse {
 		"arguments": params.Arguments,
 	})
 
-	// Call the tool
+	// Call the tool with context
+	// TODO: Extract timeout from request params if provided
+	ctx := context.Background()
 	startTime := time.Now()
-	result, err := s.handler.CallTool(params.Name, params.Arguments)
+	result, err := s.handler.CallTool(ctx, params.Name, params.Arguments)
 	duration := time.Since(startTime)
 
 	if err != nil {

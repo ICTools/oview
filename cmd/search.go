@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -87,7 +88,7 @@ func runSearch(cmd *cobra.Command, args []string) error {
 
 	// Generate embedding for query
 	fmt.Println("🧮 Generating query embedding...")
-	queryEmbedding, err := generator.Embed(query)
+	queryEmbedding, err := generator.Embed(context.Background(), query)
 	if err != nil {
 		return fmt.Errorf("failed to generate query embedding: %w", err)
 	}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -240,7 +241,7 @@ func benchmarkEmbeddingGeneration(generator embeddings.Generator, queries []stri
 	for i, query := range queries {
 		fmt.Printf("   Embedding %d/%d: %s\n", i+1, len(queries), truncate(query, 40))
 		start := time.Now()
-		_, err := generator.Embed(query)
+		_, err := generator.Embed(context.Background(), query)
 		duration := time.Since(start)
 
 		tests = append(tests, BenchmarkTest{
@@ -265,7 +266,7 @@ func benchmarkSearchPerformance(db *sql.DB, generator embeddings.Generator, proj
 		start := time.Now()
 
 		// Generate embedding
-		embedding, err := generator.Embed(query)
+		embedding, err := generator.Embed(context.Background(), query)
 		if err != nil {
 			tests = append(tests, BenchmarkTest{
 				Name:     fmt.Sprintf("Search #%d (E2E)", i+1),
@@ -311,7 +312,7 @@ func benchmarkConcurrentSearches(db *sql.DB, generator embeddings.Generator, pro
 	start := time.Now()
 
 	// Generate embedding once
-	embedding, err := generator.Embed(query)
+	embedding, err := generator.Embed(context.Background(), query)
 	if err != nil {
 		return BenchmarkTest{
 			Name:     "Concurrent Searches",

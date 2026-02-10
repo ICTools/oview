@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -83,7 +84,15 @@ func New(projectPath, projectID string, db *sql.DB, ragConfig *config.RAGConfig,
 }
 
 // Index indexes the entire project
-func (idx *Indexer) Index() (*Stats, error) {
+// Context can be used to cancel the indexing operation
+func (idx *Indexer) Index(ctx context.Context) (*Stats, error) {
+	// Set default timeout if context doesn't have one (allow long indexing)
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 1*time.Hour)
+		defer cancel()
+	}
+
 	stats := &Stats{
 		StartTime: time.Now(),
 	}
@@ -111,6 +120,13 @@ func (idx *Indexer) Index() (*Stats, error) {
 
 	// Process each file
 	for i, file := range files {
+		// Check for context cancellation
+		select {
+		case <-ctx.Done():
+			return stats, ctx.Err()
+		default:
+		}
+
 		fmt.Printf("[%d/%d] Indexing %s...\n", i+1, len(files), file)
 
 		content, err := os.ReadFile(file)
@@ -137,7 +153,7 @@ func (idx *Indexer) Index() (*Stats, error) {
 					chunkSize, maxContextChars, idx.embedder.Name())
 			}
 
-			if err := idx.storeChunk(chunk, stats.CommitSHA); err != nil {
+			if err := idx.storeChunk(ctx, chunk, stats.CommitSHA); err != nil {
 				fmt.Printf("  ⚠️  Failed to store chunk: %v\n", err)
 				continue
 			}
@@ -258,9 +274,9 @@ func (idx *Indexer) scanFiles() ([]string, error) {
 }
 
 // storeChunk stores a chunk in the database
-func (idx *Indexer) storeChunk(chunk Chunk, commitSHA string) error {
-	// Generate embedding
-	embedding, err := idx.embedder.Embed(chunk.Content)
+func (idx *Indexer) storeChunk(ctx context.Context, chunk Chunk, commitSHA string) error {
+	// Generate embedding with context
+	embedding, err := idx.embedder.Embed(ctx, chunk.Content)
 	if err != nil {
 		return fmt.Errorf("failed to generate embedding: %w", err)
 	}

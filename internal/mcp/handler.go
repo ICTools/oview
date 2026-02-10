@@ -1,10 +1,12 @@
 package mcp
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/yourusername/oview/internal/config"
@@ -29,21 +31,28 @@ func NewToolHandler(projectConfig *config.ProjectConfig, globalConfig *config.Gl
 }
 
 // CallTool executes a tool and returns the result
-func (h *ToolHandler) CallTool(name string, args map[string]interface{}) (interface{}, error) {
+func (h *ToolHandler) CallTool(ctx context.Context, name string, args map[string]interface{}) (interface{}, error) {
+	// Set default timeout if context doesn't have one
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+	}
+
 	switch name {
 	case "search":
-		return h.handleSearch(args)
+		return h.handleSearch(ctx, args)
 	case "get_context":
-		return h.handleGetContext(args)
+		return h.handleGetContext(ctx, args)
 	case "project_info":
-		return h.handleProjectInfo(args)
+		return h.handleProjectInfo(ctx, args)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
 }
 
 // handleSearch performs semantic search with advanced filters and strategies
-func (h *ToolHandler) handleSearch(args map[string]interface{}) (interface{}, error) {
+func (h *ToolHandler) handleSearch(ctx context.Context, args map[string]interface{}) (interface{}, error) {
 	// Parse arguments
 	queryText, ok := args["query"].(string)
 	if !ok || queryText == "" {
@@ -74,8 +83,8 @@ func (h *ToolHandler) handleSearch(args map[string]interface{}) (interface{}, er
 		}
 	}
 
-	// Generate query embedding
-	queryEmbedding, err := h.generator.Embed(queryText)
+	// Generate query embedding with context
+	queryEmbedding, err := h.generator.Embed(ctx, queryText)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate embedding: %w", err)
 	}
@@ -170,7 +179,7 @@ func formatFilters(filters *query.SearchFilters) map[string]interface{} {
 }
 
 // handleGetContext gets context for a file/symbol
-func (h *ToolHandler) handleGetContext(args map[string]interface{}) (interface{}, error) {
+func (h *ToolHandler) handleGetContext(ctx context.Context, args map[string]interface{}) (interface{}, error) {
 	// Parse arguments
 	path, ok := args["path"].(string)
 	if !ok || path == "" {
@@ -221,7 +230,7 @@ func (h *ToolHandler) handleGetContext(args map[string]interface{}) (interface{}
 }
 
 // handleProjectInfo returns project information
-func (h *ToolHandler) handleProjectInfo(args map[string]interface{}) (interface{}, error) {
+func (h *ToolHandler) handleProjectInfo(ctx context.Context, args map[string]interface{}) (interface{}, error) {
 	// Check database status
 	dbStatus := "unknown"
 	if h.db == nil {
